@@ -9,6 +9,7 @@ import { useToast } from '@/context/ToastContext'
 import { PAYMENT_METHODS, SHOP } from '@/lib/shop'
 import { brl, maskPhone } from '@/lib/format'
 import { loadGuest, pushGuestOrder, saveGuest } from '@/lib/guest'
+import { openWhatsApp } from '@/lib/openWhatsApp'
 import {
   IconCard,
   IconCheckCircle,
@@ -126,12 +127,6 @@ export default function CartSheet() {
       return
     }
 
-    // A aba precisa nascer aqui dentro, ainda no clique: depois do `await`
-    // o navegador trata window.open como pop-up e bloqueia. Ela fica em
-    // branco por um instante e recebe a URL assim que o pedido é salvo.
-    const waTab = SHOP.whatsapp ? window.open('', '_blank') : null
-    if (waTab) waTab.opener = null
-
     setSubmitting(true)
     try {
       const res = await fetch('/api/orders', {
@@ -161,7 +156,6 @@ export default function CartSheet() {
       const data = await res.json()
 
       if (!res.ok) {
-        waTab?.close()
         toast(data.error || 'Não foi possível enviar o pedido', 'error')
         // A API devolve quais campos faltaram.
         if (Array.isArray(data.fields)) {
@@ -203,17 +197,11 @@ export default function CartSheet() {
 
       router.refresh()
 
-      // Abre o WhatsApp sozinho, para o cliente não esquecer de mandar.
-      // Se o pop-up foi bloqueado, vai na própria aba: o pedido já está
-      // salvo e pode ser reenviado depois pela tela de pedidos.
-      if (data.whatsappUrl) {
-        if (waTab) waTab.location.href = data.whatsappUrl
-        else window.location.href = data.whatsappUrl
-      } else {
-        waTab?.close()
-      }
+      // Por último, porque `openWhatsApp` pode acabar navegando nesta mesma
+      // aba: tudo o que precisa ficar guardado já rodou nas linhas acima.
+      // Se nem assim abrir, a tela de confirmação atrás tem o botão manual.
+      if (data.whatsappUrl) openWhatsApp(data.whatsappUrl)
     } catch (err) {
-      waTab?.close()
       console.error(err)
       toast('Sem conexão. Verifique a internet e tente de novo.', 'error')
     } finally {

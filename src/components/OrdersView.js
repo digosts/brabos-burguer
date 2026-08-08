@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { PAYMENT_LABEL, STATUS_HINT } from '@/lib/orderStatus'
 import { brl, formatTime } from '@/lib/format'
 import { filterOrdersByDay, groupOrdersByDay } from '@/lib/orderDays'
+import { openWhatsApp } from '@/lib/openWhatsApp'
 import { useToast } from '@/context/ToastContext'
 import DayFilter from './DayFilter'
 import OrderTrack from './OrderTrack'
@@ -103,7 +104,7 @@ export default function OrdersView() {
         toast(data.error || 'WhatsApp da loja não configurado.', 'error')
         return
       }
-      window.open(data.whatsappUrl, '_blank', 'noopener')
+      openWhatsApp(data.whatsappUrl)
     } catch {
       toast('Não foi possível abrir o WhatsApp.', 'error')
     } finally {
