@@ -38,7 +38,11 @@ export default async function AppLayout({ children }) {
 
   // Fora do try: `redirect` funciona lançando uma exceção interna do Next,
   // que não pode ser engolida pelo catch acima.
-  if (!user) redirect('/login')
+  //
+  // Vai para o cardápio, não para o login: quem chega aqui sem sessão em
+  // geral é um cliente com um atalho antigo, e pedir não exige conta. A
+  // porta do login está no menu, para quem realmente precisa dela.
+  if (!user) redirect('/')
 
   return (
     <AuthProvider initialUser={user}>

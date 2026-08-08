@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { SHOP } from '@/lib/shop'
 
 /** Moldura das telas de login/cadastro/recuperação. */
@@ -11,6 +12,15 @@ export default function AuthShell({ title, subtitle, children }) {
           {subtitle ? <p>{subtitle}</p> : null}
         </div>
         {children}
+
+        {/* Entrar virou opcional: quem caiu aqui sem querer precisa de uma
+            saída para o cardápio, senão fica preso numa tela de login que
+            nem era necessária para pedir. */}
+        <p className="center" style={{ marginTop: 18, fontSize: 13 }}>
+          <Link href="/" className="link">
+            ← Pedir sem entrar na conta
+          </Link>
+        </p>
       </div>
     </main>
   )

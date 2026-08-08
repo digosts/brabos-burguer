@@ -6,6 +6,9 @@ export function serializeOrder(order) {
   return {
     id: String(order._id),
     code: order.code,
+    // Vai só para quem é dono do pedido (a resposta do POST e a lista do
+    // próprio cliente). É com ele que o app consulta o andamento depois.
+    trackingId: order.trackingId || null,
     items: order.items.map((i) => ({
       name: i.name,
       price: i.price,
@@ -45,6 +48,9 @@ export function serializeAdminOrder(order) {
     ...serializeOrder(order),
     customerName: order.customerName,
     customerPhone: order.customerPhone,
+    // Pedido feito sem conta: o contato foi digitado no carrinho, não veio
+    // de um cadastro. Vale a loja saber antes de ligar para confirmar.
+    isGuest: !order.user,
     updatedAt: order.updatedAt,
   }
 }

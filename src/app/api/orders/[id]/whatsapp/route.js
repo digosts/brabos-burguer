@@ -21,7 +21,7 @@ export async function GET(request, { params }) {
     // Remontamos sempre em vez de usar `order.whatsappMessage`: os pedidos
     // antigos foram salvos com emoji, que chegava quebrado no WhatsApp.
     // O campo salvo continua no banco só para auditoria.
-    const message = buildWhatsAppMessage(order, SHOP.name)
+    const message = buildWhatsAppMessage(order, SHOP.name, SHOP.pixKey)
 
     return NextResponse.json({
       whatsappUrl: SHOP.whatsapp ? buildWhatsAppUrl(SHOP.whatsapp, message) : null,

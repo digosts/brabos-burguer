@@ -3,9 +3,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import ProductCard from './ProductCard'
 import { useAuth } from '@/context/AuthContext'
+import { loadGuest } from '@/lib/guest'
 import { SHOP } from '@/lib/shop'
 import { brl } from '@/lib/format'
-import { IconAlert, IconClock, IconFlame, IconSearch, IconTruck, IconWifiOff } from './Icons'
+import {
+  IconAlert,
+  IconClock,
+  IconFlame,
+  IconSearch,
+  IconTruck,
+  IconWifiOff
+} from './Icons'
 
 function Skeletons() {
   return (
@@ -17,7 +25,10 @@ function Skeletons() {
             <div className="skeleton" style={{ height: 15, width: '65%' }} />
             <div className="skeleton" style={{ height: 12, width: '90%' }} />
             <div className="skeleton" style={{ height: 12, width: '45%' }} />
-            <div className="skeleton" style={{ height: 26, width: '38%', marginTop: 'auto' }} />
+            <div
+              className="skeleton"
+              style={{ height: 26, width: '38%', marginTop: 'auto' }}
+            />
           </div>
         </div>
       ))}
@@ -32,6 +43,13 @@ export default function HomeView() {
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [activeCat, setActiveCat] = useState('all')
+  // Quem pede sem login não tem perfil, mas o aparelho lembra o nome do
+  // último pedido — dá para chamar a pessoa pelo nome mesmo assim.
+  const [guestName, setGuestName] = useState('')
+
+  useEffect(() => {
+    if (!user) setGuestName(loadGuest().name)
+  }, [user])
 
   useEffect(() => {
     let alive = true
@@ -64,26 +82,27 @@ export default function HomeView() {
     const q = query.trim().toLowerCase()
 
     return categories
-      .filter((c) => activeCat === 'all' || c.id === activeCat)
-      .map((c) => ({
+      .filter(c => activeCat === 'all' || c.id === activeCat)
+      .map(c => ({
         ...c,
         products: q
           ? c.products.filter(
-              (p) =>
-                p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
+              p =>
+                p.name.toLowerCase().includes(q) ||
+                p.description.toLowerCase().includes(q)
             )
-          : c.products,
+          : c.products
       }))
-      .filter((c) => c.products.length > 0)
+      .filter(c => c.products.length > 0)
   }, [categories, activeCat, query])
 
   const totalProducts = categories.reduce((n, c) => n + c.products.length, 0)
-  const firstName = user?.name?.split(' ')[0] || 'tudo bem'
+  const firstName = (user?.name || guestName).split(' ')[0]
 
   return (
     <>
       <div className="hero">
-        <h2>Boa, {firstName}! 🍔</h2>
+        <h2>{firstName ? `Boa, ${firstName}! 🍔` : 'Bora pedir? 🍔'}</h2>
         <p>
           Monte seu pedido, escolha como pagar na entrega e acompanhe o preparo
           por aqui.
@@ -94,10 +113,12 @@ export default function HomeView() {
           </span>
           <span className="chip">
             <IconTruck size={13} />
-            {SHOP.deliveryFee > 0 ? `Entrega ${brl(SHOP.deliveryFee)}` : 'Entrega grátis'}
+            {SHOP.deliveryFee > 0
+              ? `Entrega ${brl(SHOP.deliveryFee)}`
+              : 'Entrega grátis'}
           </span>
           <span className="chip">
-            <IconFlame size={13} /> Pagamento na entrega
+            <IconFlame size={13} /> Pagamento na entrega ou via Pix
           </span>
         </div>
       </div>
@@ -108,7 +129,7 @@ export default function HomeView() {
           <input
             className="input"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={e => setQuery(e.target.value)}
             placeholder="Buscar no menu…"
             type="search"
             aria-label="Buscar produtos"
@@ -125,7 +146,7 @@ export default function HomeView() {
             >
               Todos
             </button>
-            {categories.map((c) => (
+            {categories.map(c => (
               <button
                 key={c.id}
                 className={`cat-pill${activeCat === c.id ? ' active' : ''}`}
@@ -195,7 +216,7 @@ export default function HomeView() {
         </div>
       ) : null}
 
-      {visible.map((cat) => (
+      {visible.map(cat => (
         <section key={cat.id}>
           <h2 className="section-title" id={`cat-${cat.id}`}>
             {cat.icon ? <span aria-hidden>{cat.icon}</span> : null}
@@ -203,12 +224,15 @@ export default function HomeView() {
             <span className="count">{cat.products.length}</span>
           </h2>
           {cat.description ? (
-            <p className="text-mute" style={{ fontSize: 13, marginTop: -8, marginBottom: 14 }}>
+            <p
+              className="text-mute"
+              style={{ fontSize: 13, marginTop: -8, marginBottom: 14 }}
+            >
               {cat.description}
             </p>
           ) : null}
           <div className="product-grid">
-            {cat.products.map((p) => (
+            {cat.products.map(p => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>

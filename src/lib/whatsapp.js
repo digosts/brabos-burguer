@@ -20,7 +20,7 @@ const money = (value) => asciiSafe(brl(value))
  * Monta a mensagem que chega no WhatsApp da produção.
  * O `*texto*` vira negrito e o `_texto_` vira itálico no WhatsApp.
  */
-export function buildWhatsAppMessage(order, shopName = 'Burger House') {
+export function buildWhatsAppMessage(order, shopName = 'Burger House', pixKey = '') {
   const L = []
 
   L.push(`*NOVO PEDIDO #${order.code}*`)
@@ -46,7 +46,25 @@ export function buildWhatsAppMessage(order, shopName = 'Burger House') {
   L.push('')
 
   L.push(`*Pagamento:* ${PAYMENT_LABEL[order.paymentMethod] || order.paymentMethod}`)
-  L.push('_Pagamento realizado na entrega_')
+
+  /**
+   * No PIX a chave vai junto, com o valor já somado: é o que evita a ida e
+   * volta de "qual é a chave?" / "quanto deu?" antes do pagamento sair.
+   *
+   * Substitui o aviso de pagar na entrega em vez de somar a ele — dizer as
+   * duas coisas na mesma mensagem deixaria o cliente sem saber se paga
+   * agora ou depois. Sem chave configurada, cai no texto de sempre.
+   */
+  if (order.paymentMethod === 'pix' && pixKey) {
+    L.push('')
+    L.push('*PAGUE COM PIX*')
+    L.push(`Chave: *${asciiSafe(pixKey)}*`)
+    L.push(`Valor: *${money(order.total)}*`)
+    L.push('Depois de pagar, envie o comprovante aqui nesta conversa.')
+  } else {
+    L.push('_Pagamento realizado na entrega_')
+  }
+
   if (order.changeFor) L.push(`*Troco para:* ${money(order.changeFor)}`)
   L.push('')
 

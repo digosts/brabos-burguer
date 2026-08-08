@@ -27,11 +27,36 @@ export async function GET() {
 
 export async function POST(request) {
   try {
+    // Sem sessão o pedido não é recusado: a loja aceita quem entra direto
+    // pelo cardápio. Nesse caso o contato vem do formulário do carrinho, e
+    // é por isso que ele é validado aqui com o mesmo rigor do cadastro.
     const user = await getCurrentUser()
-    if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
     const body = await request.json()
     const { items, paymentMethod, address, notes, changeFor, saveAddress = true } = body || {}
+
+    let customerName = user?.name
+    let customerPhone = user?.phone
+
+    if (!user) {
+      customerName = String(body?.customerName || '').trim().slice(0, 80)
+      // Só dígitos, igual ao cadastro: é assim que o telefone é gravado no
+      // banco, e é o formato que o link `tel:` do painel espera.
+      customerPhone = String(body?.customerPhone || '').replace(/\D/g, '').slice(0, 13)
+
+      if (customerName.length < 2) {
+        return NextResponse.json(
+          { error: 'Informe seu nome para a entrega.', fields: ['customerName'] },
+          { status: 400 }
+        )
+      }
+      if (customerPhone.length < 10) {
+        return NextResponse.json(
+          { error: 'Informe um WhatsApp com DDD.', fields: ['customerPhone'] },
+          { status: 400 }
+        )
+      }
+    }
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Seu carrinho está vazio.' }, { status: 400 })
@@ -99,9 +124,9 @@ export async function POST(request) {
     const parsedChange = Number(changeFor)
     const order = await Order.create({
       code: await nextOrderCode(),
-      user: user._id,
-      customerName: user.name,
-      customerPhone: user.phone,
+      user: user?._id || null,
+      customerName,
+      customerPhone,
       items: orderItems,
       subtotal,
       deliveryFee,
@@ -122,12 +147,14 @@ export async function POST(request) {
       status: 'preparing',
     })
 
-    const message = buildWhatsAppMessage(order, SHOP.name)
+    const message = buildWhatsAppMessage(order, SHOP.name, SHOP.pixKey)
     order.whatsappMessage = message
     await order.save()
 
     // Guarda o endereço no perfil para já vir preenchido no próximo pedido.
-    if (saveAddress) {
+    // Quem pediu sem login não tem perfil: o endereço dele fica no
+    // localStorage do próprio aparelho, gravado pelo carrinho.
+    if (user && saveAddress) {
       user.address = order.address
       await user.save()
     }

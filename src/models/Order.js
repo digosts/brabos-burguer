@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import mongoose from 'mongoose'
 import { ORDER_STATUS } from '@/lib/orderStatus'
 
@@ -19,14 +20,39 @@ const orderSchema = new mongoose.Schema(
     // Número curto mostrado ao cliente e na produção (#1001, #1002...).
     code: { type: Number, required: true, unique: true, index: true },
 
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
+    /**
+     * Chave de acompanhamento do pedido, sorteada na criação.
+     *
+     * É o que permite a quem pediu sem conta ver o andamento: o navegador
+     * dele guarda este UUID e consulta o status com ele. Como o `code` é
+     * sequencial e fácil de adivinhar, ele não serve para isso — daí um
+     * valor aleatório à parte.
+     *
+     * `sparse` porque os pedidos criados antes deste campo não têm um, e
+     * sem isso o índice único brigaria com eles.
+     */
+    trackingId: {
+      type: String,
+      default: () => randomUUID(),
+      unique: true,
+      sparse: true,
       index: true,
     },
 
-    // Snapshot dos dados de contato no momento do pedido.
+    /**
+     * Fica nulo nos pedidos feitos sem login — a loja aceita pedido de quem
+     * entra direto pelo cardápio, sem conta. Quem tem conta continua com o
+     * pedido amarrado ao usuário, que é o que alimenta a tela "Pedidos".
+     */
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+      index: true,
+    },
+
+    // Snapshot dos dados de contato no momento do pedido. No pedido sem
+    // login é o que o cliente digitou no carrinho.
     customerName: { type: String, required: true },
     customerPhone: { type: String, required: true },
 

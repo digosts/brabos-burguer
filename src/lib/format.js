@@ -20,15 +20,10 @@ export function maskPhone(raw) {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
 }
 
-export function formatDateTime(value) {
+/** Só a hora — nas listas de pedidos a data já está no cabeçalho do dia. */
+export function formatTime(value) {
   if (!value) return ''
-  return new Date(value).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return new Date(value).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
 export function isValidEmail(value) {

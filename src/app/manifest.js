@@ -36,8 +36,10 @@ export default function manifest() {
       },
     ],
     shortcuts: [
-      { name: 'Fazer pedido', url: '/inicio', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
-      { name: 'Meus pedidos', url: '/pedidos', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
+      // A `/` decide sozinha entre o cardápio aberto e o app de quem tem
+      // conta, então serve para os dois casos.
+      { name: 'Fazer pedido', url: '/', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
+      { name: 'Meus pedidos', url: '/meus-pedidos', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
     ],
   }
 }

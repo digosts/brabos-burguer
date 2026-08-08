@@ -681,6 +681,13 @@ ol {
   border: 2px solid var(--surface);
 }
 
+/* O vermelho do badge padrão avisa que algo pede atenção (pedido em
+   andamento). O carrinho não é aviso, é a conta do que você escolheu —
+   então usa o laranja da marca, igual ao badge do botão lá do topo. */
+.fab-nav-item .badge-cart {
+  background: var(--brand);
+}
+
 @keyframes pop {
   from {
     opacity: 0;
@@ -1286,6 +1293,96 @@ ol {
    Pedidos
    ══════════════════════════════════════════════════════════════ */
 
+/* ── filtro por data e blocos de um dia ───────────────────── */
+
+.day-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.day-filter-field {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text-mute);
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.day-filter-field:focus-within {
+  border-color: var(--brand);
+  background: var(--surface-3);
+  box-shadow: 0 0 0 3px var(--brand-dim);
+  color: var(--text);
+}
+
+.day-filter-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+}
+
+.day-filter-field input:focus {
+  outline: none;
+}
+
+.day-filter-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-mute);
+  white-space: nowrap;
+}
+
+.day-group + .day-group {
+  margin-top: 22px;
+}
+
+.day-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+/* Linha fina ligando o título ao resto do bloco, para o dia ler como um
+   grupo e não como mais um card solto na lista. */
+.day-head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  order: 1;
+}
+
+.day-title {
+  font-size: 15px;
+  font-weight: 720;
+  letter-spacing: -0.01em;
+  text-transform: capitalize;
+}
+
+/* Fica depois da linha divisória (`.day-head::after`, ordem 1). */
+.day-sum {
+  order: 2;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-mute);
+  white-space: nowrap;
+}
+
 .order-card {
   padding: 16px;
   background: var(--surface);
@@ -1482,9 +1579,20 @@ ol {
 .order-foot {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
+}
+
+/* Ações do pedido — ficam à direita, na mesma linha do valor; em telas
+   estreitas caem juntas para a linha de baixo, ainda alinhadas à direita. */
+.order-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .order-total {
@@ -1972,6 +2080,18 @@ ol {
   font-size: 14px;
 }
 
+/* Pedido feito sem cadastro: o contato foi digitado no carrinho. */
+.guest-tag {
+  padding: 3px 8px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  color: var(--text-mute);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
 .admin-phone {
   display: inline-flex;
   align-items: center;
@@ -2002,12 +2122,14 @@ ol {
     font-size: 10px;
   }
 
-  .admin-actions {
+  .admin-actions,
+  .order-actions {
     width: 100%;
     margin-left: 0;
   }
 
-  .admin-actions .btn {
+  .admin-actions .btn,
+  .order-actions .btn {
     flex: 1;
   }
 }

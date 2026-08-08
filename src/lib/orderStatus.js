@@ -24,7 +24,10 @@ export const ORDER_STATUS = {
 export const ADMIN_ASSIGNABLE_STATUS = ['on_the_way', 'delivered']
 
 export const PAYMENT_LABEL = {
-  pix: 'PIX (na entrega)',
+  // Sem "(na entrega)": quando há chave PIX configurada, a mensagem do
+  // WhatsApp manda pagar antes e enviar o comprovante — dizer as duas
+  // coisas na mesma tela deixaria o cliente sem saber quando paga.
+  pix: 'PIX',
   credit: 'Cartão de crédito (na entrega)',
   debit: 'Cartão de débito (na entrega)',
 }

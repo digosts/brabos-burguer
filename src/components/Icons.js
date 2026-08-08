@@ -255,6 +255,21 @@ export const IconEdit = ({ size = 20, ...p }) => (
   </svg>
 )
 
+export const IconCalendar = ({ size = 20, ...p }) => (
+  <svg {...base(size)} {...p}>
+    <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+    <path d="M3.5 9.5h17M8 3v4M16 3v4" />
+  </svg>
+)
+
+export const IconRefresh = ({ size = 20, ...p }) => (
+  <svg {...base(size)} {...p}>
+    <path d="M21.5 4v6h-6" />
+    <path d="M2.5 20v-6h6" />
+    <path d="M4.6 9a8 8 0 0 1 13.2-3l3.7 4M2.5 14l3.7 4a8 8 0 0 0 13.2-3" />
+  </svg>
+)
+
 export const IconWifiOff = ({ size = 20, ...p }) => (
   <svg {...base(size)} {...p}>
     <path d="M3 4l18 18" />
