@@ -1,0 +1,22 @@
+{
+  "name": "burger-delivery",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "seed": "node scripts/seed.mjs",
+    "icons": "node scripts/generate-icons.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5",
+    "next": "^15.1.6",
+    "nodemailer": "^9.0.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
