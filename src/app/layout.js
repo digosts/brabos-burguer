@@ -3,6 +3,7 @@ import { SHOP } from '@/lib/shop'
 import { InstallProvider } from '@/context/InstallContext'
 import InstallPrompt from '@/components/InstallPrompt'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
+import NoZoom from '@/components/NoZoom'
 
 export const metadata = {
   title: {
@@ -31,6 +32,10 @@ export const viewport = {
   themeColor: '#0f0f12',
   width: 'device-width',
   initialScale: 1,
+  // Trava o zoom para o app se comportar como aplicativo nativo. Android
+  // respeita isso; no iOS o Safari ignora, então o NoZoom completa o serviço.
+  maximumScale: 1,
+  userScalable: false,
   // Faz o conteúdo ocupar a área do notch; o CSS usa env(safe-area-inset-*).
   viewportFit: 'cover',
 }
@@ -44,6 +49,7 @@ export default function RootLayout({ children }) {
           <InstallPrompt />
         </InstallProvider>
         <ServiceWorkerRegister />
+        <NoZoom />
       </body>
     </html>
   )

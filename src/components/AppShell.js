@@ -1,14 +1,24 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { SHOP } from '@/lib/shop'
 import { useCart } from '@/context/CartContext'
 import FloatingMenu from './FloatingMenu'
-import CartFab from './CartFab'
 import CartSheet from './CartSheet'
 import { IconCart } from './Icons'
 
 export default function AppShell({ ordersBadge = 0, isAdmin = false, adminBadge = 0, children }) {
-  const { count, setOpen } = useCart()
+  const { count, setOpen, bump } = useCart()
+  const [pulse, setPulse] = useState(false)
+
+  // Pequeno "pulo" a cada item adicionado, para o usuário perceber que o
+  // carrinho foi atualizado mesmo com o botão lá em cima.
+  useEffect(() => {
+    if (!bump) return
+    setPulse(true)
+    const t = setTimeout(() => setPulse(false), 460)
+    return () => clearTimeout(t)
+  }, [bump])
 
   return (
     <div className="app-shell">
@@ -24,7 +34,7 @@ export default function AppShell({ ordersBadge = 0, isAdmin = false, adminBadge 
 
           <div className="topbar-actions">
             <button
-              className="icon-btn"
+              className={`icon-btn${pulse ? ' bump' : ''}`}
               onClick={() => setOpen(true)}
               aria-label={`Abrir carrinho${count > 0 ? `: ${count} itens` : ' (vazio)'}`}
               style={{ position: 'relative' }}
@@ -59,7 +69,6 @@ export default function AppShell({ ordersBadge = 0, isAdmin = false, adminBadge 
 
       <main className="container page">{children}</main>
 
-      <CartFab />
       <FloatingMenu ordersBadge={ordersBadge} isAdmin={isAdmin} adminBadge={adminBadge} />
       <CartSheet />
     </div>

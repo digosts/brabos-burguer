@@ -60,6 +60,8 @@ body {
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Mata o zoom de duplo-toque sem tirar o scroll nem atrasar o clique. */
+  touch-action: manipulation;
 }
 
 body {
@@ -286,6 +288,20 @@ ol {
   min-height: 84px;
   resize: vertical;
   line-height: 1.45;
+}
+
+/* O iOS dá zoom sozinho ao focar um campo com fonte menor que 16px — é o
+   zoom que mais incomoda, porque acontece no meio do cadastro. Em telas de
+   toque subimos meio pixel para 16px e o navegador deixa a tela quieta. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea,
+  .input,
+  .textarea,
+  .select {
+    font-size: 16px;
+  }
 }
 
 .field-error {
@@ -665,43 +681,6 @@ ol {
   border: 2px solid var(--surface);
 }
 
-/* ── botão do carrinho ────────────────────────────────────── */
-
-.cart-fab {
-  position: fixed;
-  right: 18px;
-  bottom: calc(100px + env(safe-area-inset-bottom));
-  z-index: 55;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 54px;
-  padding: 0 18px;
-  border-radius: var(--r-full);
-  background: linear-gradient(135deg, var(--brand-2), var(--brand));
-  color: #fff;
-  font-weight: 700;
-  font-size: 14.5px;
-  box-shadow: 0 12px 32px -10px var(--brand-glow), var(--shadow-md);
-  animation: pop 0.4s var(--ease) both;
-  transition: transform 0.15s var(--ease);
-}
-
-.cart-fab:active {
-  transform: scale(0.95);
-}
-
-.cart-fab .cart-count {
-  display: grid;
-  place-items: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: var(--r-full);
-  background: rgba(0, 0, 0, 0.28);
-  font-size: 12px;
-}
-
 @keyframes pop {
   from {
     opacity: 0;
@@ -709,8 +688,9 @@ ol {
   }
 }
 
-/* Pulso quando um item entra no carrinho. */
-.cart-fab.bump {
+/* Pulso quando um item entra no carrinho — fica no botão do topo, que é
+   o único carrinho da tela. */
+.bump {
   animation: bump 0.45s var(--ease);
 }
 
@@ -1908,11 +1888,6 @@ ol {
 
   .sheet-head {
     padding-top: 20px;
-  }
-
-  .cart-fab {
-    right: 24px;
-    bottom: calc(28px + env(safe-area-inset-bottom));
   }
 
   .fab-nav-item {
