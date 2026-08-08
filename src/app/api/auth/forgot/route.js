@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/mongodb'
 import User from '@/models/User'
 import { createResetToken } from '@/lib/auth'
+import { appUrl } from '@/lib/appUrl'
+import { checkLimits, clientIp, tooManyRequests, HOUR } from '@/lib/rateLimit'
 import { isMailConfigured, sendResetEmail } from '@/lib/mailer'
 import { SHOP } from '@/lib/shop'
 
@@ -12,8 +14,31 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Informe seu e-mail.' }, { status: 400 })
     }
 
+    const normalizedEmail = email.trim().toLowerCase()
+
+    /**
+     * Cada chamada aqui manda um e-mail de verdade para a caixa de outra
+     * pessoa. Sem limite, a rota vira ferramenta de perseguição — basta
+     * repetir o POST para enterrar a caixa da vítima — e ainda queima a cota
+     * e a reputação do seu SMTP.
+     *
+     * O contador sobe antes de sabermos se a conta existe, de propósito: se
+     * só contasse e-mails cadastrados, o 429 viraria um jeito de descobrir
+     * quem tem conta na loja.
+     */
+    const limited = await checkLimits([
+      { key: `forgot:email:${normalizedEmail}`, limit: 3, windowMs: HOUR },
+      { key: `forgot:ip:${clientIp(request)}`, limit: 10, windowMs: HOUR },
+    ])
+    if (!limited.ok) {
+      return tooManyRequests(
+        'Já enviamos as instruções. Verifique sua caixa de entrada e o spam antes de pedir de novo.',
+        limited.retryAfter
+      )
+    }
+
     await connectDB()
-    const user = await User.findOne({ email: email.trim().toLowerCase() })
+    const user = await User.findOne({ email: normalizedEmail })
 
     // Resposta idêntica exista ou não a conta: evita descobrir e-mails cadastrados.
     const genericOk = { ok: true, message: 'Se este e-mail estiver cadastrado, enviamos as instruções.' }
@@ -24,8 +49,10 @@ export async function POST(request) {
     user.resetTokenExpiresAt = expiresAt
     await user.save()
 
-    const origin = request.headers.get('origin') || new URL(request.url).origin
-    const resetUrl = `${origin}/redefinir-senha/${token}`
+    // Endereço fixo, de configuração. Ver o comentário em `appUrl`: derivar
+    // isto do cabeçalho da requisição entrega o token de redefinição a quem
+    // souber mandar um `Origin` forjado.
+    const resetUrl = `${appUrl()}/redefinir-senha/${token}`
 
     if (isMailConfigured()) {
       try {

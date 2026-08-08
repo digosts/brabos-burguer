@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { PAYMENT_LABEL } from '@/lib/orderStatus'
+import { PAYMENT_LABEL, STATUS_HINT } from '@/lib/orderStatus'
 import { brl, formatTime } from '@/lib/format'
 import { filterOrdersByDay, groupOrdersByDay } from '@/lib/orderDays'
 import { loadGuestOrders } from '@/lib/guest'
@@ -264,12 +264,10 @@ export default function GuestOrdersView() {
                       <span>{order.notes}</span>
                     </div>
                   ) : null}
-                  {live?.status === 'preparing' ? (
+                  {STATUS_HINT[live?.status] ? (
                     <div>
                       <IconClock size={14} />
-                      <span>
-                        Previsão de entrega: 30 a 45 minutos após a confirmação.
-                      </span>
+                      <span>{STATUS_HINT[live.status]}</span>
                     </div>
                   ) : null}
                 </div>

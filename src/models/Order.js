@@ -88,7 +88,10 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: Object.keys(ORDER_STATUS),
-      default: 'preparing',
+      // Nasce aguardando alguém da loja confirmar — ver o comentário em
+      // ORDER_STATUS. A rota também define isto explicitamente; o default
+      // existe para que nenhum caminho futuro crie pedido já em preparação.
+      default: 'awaiting_confirmation',
       index: true,
     },
 

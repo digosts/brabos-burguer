@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/mongodb'
 import User from '@/models/User'
 import { assertAuthConfigured, hashPassword, setSessionCookie } from '@/lib/auth'
+import { checkLimits, clientIp, tooManyRequests, HOUR } from '@/lib/rateLimit'
 import { isValidEmail } from '@/lib/format'
 
 export async function POST(request) {
@@ -22,6 +23,20 @@ export async function POST(request) {
     }
 
     assertAuthConfigured()
+
+    // Segura a criação de contas em massa — que serviria tanto para encher a
+    // base quanto para contornar, com contas novas, qualquer limite que use
+    // o usuário como chave.
+    const limited = await checkLimits([
+      { key: `register:ip:${clientIp(request)}`, limit: 3, windowMs: HOUR },
+    ])
+    if (!limited.ok) {
+      return tooManyRequests(
+        'Muitas contas criadas deste aparelho. Tente de novo mais tarde.',
+        limited.retryAfter
+      )
+    }
+
     await connectDB()
 
     const normalizedEmail = email.trim().toLowerCase()
@@ -55,7 +70,7 @@ export async function POST(request) {
       password: await hashPassword(password),
     })
 
-    await setSessionCookie(user._id)
+    await setSessionCookie(user)
     return NextResponse.json({ user: user.toPublic() }, { status: 201 })
   } catch (err) {
     // Dois cadastros simultâneos passam pela checagem acima e só colidem

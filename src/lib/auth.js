@@ -6,7 +6,28 @@ import { connectDB } from './mongodb'
 import User from '@/models/User'
 
 const COOKIE_NAME = 'burger_session'
-const MAX_AGE_SECONDS = 60 * 60 * 24 * 30 // 30 dias
+
+/**
+ * Duração da sessão, por papel.
+ *
+ * O cliente fica logado um mês — reentrar a cada pedido só atrapalharia. O
+ * admin, não: a sessão dele abre a base inteira de clientes e a fila da loja.
+ * Um mês de validade significa que o celular esquecido no balcão continua
+ * sendo uma porta aberta até setembro. Doze horas cobrem um dia de trabalho.
+ */
+const CUSTOMER_MAX_AGE = 60 * 60 * 24 * 30 // 30 dias
+const ADMIN_MAX_AGE = 60 * 60 * 12 // 12 horas
+
+const maxAgeFor = (user) => (user?.role === 'admin' ? ADMIN_MAX_AGE : CUSTOMER_MAX_AGE)
+
+/** Atributos do cookie de sessão — os mesmos ao gravar e ao apagar. */
+const cookieOptions = (maxAge) => ({
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production',
+  path: '/',
+  maxAge,
+})
 
 function secret() {
   const s = process.env.JWT_SECRET
@@ -32,8 +53,16 @@ export function comparePassword(plain, hash) {
   return bcrypt.compare(plain, hash)
 }
 
-export function signToken(userId) {
-  return jwt.sign({ sub: String(userId) }, secret(), { expiresIn: MAX_AGE_SECONDS })
+/**
+ * `v` carrega a versão da sessão do usuário. Ver `tokenVersion` no model:
+ * é o que permite invalidar tokens já emitidos.
+ */
+export function signToken(user) {
+  return jwt.sign(
+    { sub: String(user._id), v: user.tokenVersion ?? 0 },
+    secret(),
+    { expiresIn: maxAgeFor(user) }
+  )
 }
 
 export function verifyToken(token) {
@@ -44,32 +73,50 @@ export function verifyToken(token) {
   }
 }
 
-/** Grava o cookie de sessão (httpOnly — inacessível ao JavaScript do cliente). */
-export async function setSessionCookie(userId) {
+/**
+ * Grava o cookie de sessão (httpOnly — inacessível ao JavaScript do cliente).
+ *
+ * Recebe o documento do usuário, não só o id: o papel define quanto tempo a
+ * sessão dura, e a `tokenVersion` entra na assinatura.
+ */
+export async function setSessionCookie(user) {
   const store = await cookies()
-  store.set(COOKIE_NAME, signToken(userId), {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: MAX_AGE_SECONDS,
-  })
-}
-
-export async function clearSessionCookie() {
-  const store = await cookies()
-  store.set(COOKIE_NAME, '', { path: '/', maxAge: 0 })
+  store.set(COOKIE_NAME, signToken(user), cookieOptions(maxAgeFor(user)))
 }
 
 /**
- * Verifica só a assinatura do cookie, sem consultar o MongoDB.
- * Usado nos redirecionamentos de rota, onde não precisamos dos dados
- * do usuário — evita uma ida ao banco em cada navegação.
+ * Apaga o cookie repetindo os mesmos atributos da gravação.
+ *
+ * Não é detalhe: o navegador só sobrescreve um cookie quando nome, domínio e
+ * caminho batem, e alguns descartam a resposta se `secure`/`sameSite`
+ * divergirem. Sem isso o "sair" mostrava a tela de deslogado com a sessão
+ * ainda válida no cookie.
+ */
+export async function clearSessionCookie() {
+  const store = await cookies()
+  store.set(COOKIE_NAME, '', cookieOptions(0))
+}
+
+/**
+ * Existe sessão utilizável?
+ *
+ * Consulta o banco, apesar de só precisar de um sim/não. A versão anterior
+ * conferia apenas a assinatura, para poupar uma consulta — mas com a
+ * `tokenVersion` isso passou a mentir: um cookie revogado ainda tem
+ * assinatura boa. Quem tentasse abrir /login com um cookie desses era mandado
+ * para /inicio, que não o reconhecia e devolvia para o cardápio — sem nunca
+ * conseguir chegar ao formulário de entrada.
  */
 export async function hasValidSession() {
-  const store = await cookies()
-  const token = store.get(COOKIE_NAME)?.value
-  return Boolean(token && verifyToken(token))
+  try {
+    return Boolean(await getCurrentUser())
+  } catch (err) {
+    // Banco fora do ar não pode derrubar a tela de login — ela é justamente
+    // onde alguém vai parar quando o resto falha. Na dúvida, "sem sessão":
+    // o pior caso é mostrar o formulário a quem já estava logado.
+    console.error('[hasValidSession]', err)
+    return false
+  }
 }
 
 /** Retorna o documento do usuário logado, ou null. */
@@ -82,7 +129,19 @@ export async function getCurrentUser() {
   if (!payload?.sub) return null
 
   await connectDB()
-  return User.findById(payload.sub)
+  const user = await User.findById(payload.sub)
+  if (!user) return null
+
+  /**
+   * Token emitido antes da última troca de senha não vale mais.
+   *
+   * É o que faz "trocar a senha" expulsar de verdade quem estava dentro. Sem
+   * esta linha, quem tivesse roubado a sessão continuaria navegando por até
+   * 30 dias mesmo depois de o dono perceber e mudar a senha.
+   */
+  if ((payload.v ?? 0) !== (user.tokenVersion ?? 0)) return null
+
+  return user
 }
 
 /**

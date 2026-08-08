@@ -14,15 +14,17 @@ import {
   IconCard,
   IconCheck,
   IconCheckCircle,
+  IconClock,
   IconMapPin,
   IconNote,
   IconPhone,
   IconTruck,
+  IconX,
 } from './Icons'
 
 const TABS = [
   { href: '/admin/pedidos', label: 'Em andamento' },
-  { href: '/admin/entregues', label: 'Entregues' },
+  { href: '/admin/entregues', label: 'Finalizados' },
 ]
 
 const COPY = {
@@ -33,10 +35,11 @@ const COPY = {
     countLabel: (n) => `${n} ${n === 1 ? 'pedido em aberto' : 'pedidos em aberto'} · mais antigos primeiro`,
   },
   delivered: {
-    title: 'Entregues',
-    empty: 'Nenhuma entrega concluída ainda',
-    emptyHint: 'Os pedidos marcados como entregues ficam aqui para conferência.',
-    countLabel: (n) => `${n} ${n === 1 ? 'pedido entregue' : 'pedidos entregues'} · mais recentes primeiro`,
+    title: 'Finalizados',
+    empty: 'Nenhum pedido finalizado ainda',
+    emptyHint: 'Os pedidos entregues e os recusados ficam aqui para conferência.',
+    countLabel: (n) =>
+      `${n} ${n === 1 ? 'pedido finalizado' : 'pedidos finalizados'} · mais recentes primeiro`,
   },
 }
 
@@ -89,6 +92,12 @@ export default function AdminOrdersView({ scope }) {
     }
   }, [load])
 
+  // Quantos ainda dependem de você para a cozinha começar.
+  const pending = useMemo(
+    () => orders.filter((o) => o.status === 'awaiting_confirmation').length,
+    [orders]
+  )
+
   const changeStatus = async (orderId, status, successMsg) => {
     setSaving(orderId)
     try {
@@ -116,6 +125,17 @@ export default function AdminOrdersView({ scope }) {
     }
   }
 
+  // Recusar apaga o pedido da fila da loja e libera o telefone do cliente
+  // para pedir de novo. Vale confirmar antes — o clique é irreversível pela
+  // interface.
+  const refuse = (order) => {
+    const ok = window.confirm(
+      `Recusar o pedido #${order.code} de ${order.customerName}?\n\n` +
+        'Ele sai da fila e o cliente passa a ver "Cancelado".'
+    )
+    if (ok) changeStatus(order.id, 'canceled', `Pedido #${order.code} recusado`)
+  }
+
   return (
     <>
       <h1 className="page-title">{copy.title}</h1>
@@ -138,6 +158,22 @@ export default function AdminOrdersView({ scope }) {
         <div className="alert alert-error">
           <IconAlert size={16} />
           <span>{error}</span>
+        </div>
+      ) : null}
+
+      {/*
+        A fila é ordenada do mais antigo para o mais novo, então um pedido
+        recém-chegado — justamente o que precisa de confirmação — cai no fim
+        da lista. Este aviso é o que impede que ele fique esquecido lá embaixo.
+      */}
+      {scope === 'active' && pending > 0 ? (
+        <div className="alert alert-warn">
+          <IconClock size={16} />
+          <span>
+            {pending === 1
+              ? '1 pedido aguardando confirmação. Confira no WhatsApp antes de preparar.'
+              : `${pending} pedidos aguardando confirmação. Confira no WhatsApp antes de preparar.`}
+          </span>
         </div>
       ) : null}
 
@@ -264,40 +300,89 @@ export default function AdminOrdersView({ scope }) {
                   </small>
                 </div>
 
+                {/*
+                  Um pedido ainda não confirmado não oferece "saiu para
+                  entrega" nem "entregue": as únicas saídas são confirmar —
+                  que é o que libera a cozinha — ou recusar. É essa escolha
+                  obrigatória que faz o trote parar antes da chapa.
+                */}
                 <div className="admin-actions">
-                  {order.status !== 'on_the_way' ? (
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() =>
-                        changeStatus(
-                          order.id,
-                          'on_the_way',
-                          `Pedido #${order.code} saiu para entrega`
-                        )
-                      }
-                      disabled={saving === order.id}
-                    >
-                      {saving === order.id ? <span className="spinner" /> : <IconTruck size={15} />}
-                      {order.status === 'delivered' ? 'Voltar para rota' : 'Saiu para entrega'}
-                    </button>
-                  ) : null}
+                  {order.status === 'awaiting_confirmation' ? (
+                    <>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => refuse(order)}
+                        disabled={saving === order.id}
+                      >
+                        {saving === order.id ? <span className="spinner" /> : <IconX size={15} />}
+                        Recusar
+                      </button>
+                      <button
+                        className="btn btn-ok btn-sm"
+                        onClick={() =>
+                          changeStatus(
+                            order.id,
+                            'preparing',
+                            `Pedido #${order.code} confirmado — pode preparar`
+                          )
+                        }
+                        disabled={saving === order.id}
+                      >
+                        {saving === order.id ? (
+                          <span className="spinner" />
+                        ) : (
+                          <IconCheckCircle size={15} />
+                        )}
+                        Confirmar
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {order.status !== 'on_the_way' ? (
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() =>
+                            changeStatus(
+                              order.id,
+                              'on_the_way',
+                              `Pedido #${order.code} saiu para entrega`
+                            )
+                          }
+                          disabled={saving === order.id}
+                        >
+                          {saving === order.id ? (
+                            <span className="spinner" />
+                          ) : (
+                            <IconTruck size={15} />
+                          )}
+                          {order.status === 'delivered' || order.status === 'canceled'
+                            ? 'Voltar para rota'
+                            : 'Saiu para entrega'}
+                        </button>
+                      ) : null}
 
-                  {order.status !== 'delivered' ? (
-                    <button
-                      className="btn btn-ok btn-sm"
-                      onClick={() =>
-                        changeStatus(
-                          order.id,
-                          'delivered',
-                          `Pedido #${order.code} marcado como entregue`
-                        )
-                      }
-                      disabled={saving === order.id}
-                    >
-                      {saving === order.id ? <span className="spinner" /> : <IconCheck size={15} />}
-                      Entregue
-                    </button>
-                  ) : null}
+                      {order.status !== 'delivered' ? (
+                        <button
+                          className="btn btn-ok btn-sm"
+                          onClick={() =>
+                            changeStatus(
+                              order.id,
+                              'delivered',
+                              `Pedido #${order.code} marcado como entregue`
+                            )
+                          }
+                          disabled={saving === order.id}
+                        >
+                          {saving === order.id ? (
+                            <span className="spinner" />
+                          ) : (
+                            <IconCheck size={15} />
+                          )}
+                          Entregue
+                        </button>
+                      ) : null}
+                    </>
+                  )}
                 </div>
               </div>
             </article>

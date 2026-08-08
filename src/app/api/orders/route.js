@@ -1,14 +1,24 @@
 import { NextResponse } from 'next/server'
+import { isValidObjectId } from 'mongoose'
 import { connectDB } from '@/lib/mongodb'
 import Order from '@/models/Order'
 import Product from '@/models/Product'
 import { nextOrderCode } from '@/models/Counter'
 import { getCurrentUser } from '@/lib/auth'
+import { checkLimits, clientIp, MINUTE } from '@/lib/rateLimit'
+import { logAuditThrottled } from '@/lib/audit'
+import { OPEN_STATUS } from '@/lib/orderStatus'
 import { SHOP } from '@/lib/shop'
 import { serializeOrder } from '@/lib/serialize'
 import { buildWhatsAppMessage, buildWhatsAppUrl } from '@/lib/whatsapp'
 
 const round2 = (n) => Math.round(n * 100) / 100
+
+/** Itens *diferentes* por pedido. Um carrinho de verdade não chega perto disso. */
+const MAX_ITEMS = 40
+
+/** Teto do corpo da requisição. Um pedido cheio dá alguns poucos KB. */
+const MAX_BODY_BYTES = 100 * 1024
 
 export async function GET() {
   try {
@@ -27,6 +37,20 @@ export async function GET() {
 
 export async function POST(request) {
   try {
+    /**
+     * Recusa o corpo gigante antes de lê-lo — `request.json()` carrega tudo
+     * na memória, e um pedido de verdade não passa de alguns KB.
+     *
+     * É uma barreira barata, não uma garantia: o `content-length` vem de quem
+     * chama e pode ser omitido (envio em chunks) ou mentir. Quem escapar aqui
+     * ainda esbarra no limite de `items` logo abaixo — a diferença é que terá
+     * custado uma leitura de corpo inteiro.
+     */
+    const declaredSize = Number(request.headers.get('content-length') || 0)
+    if (declaredSize > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: 'Pedido grande demais.' }, { status: 413 })
+    }
+
     // Sem sessão o pedido não é recusado: a loja aceita quem entra direto
     // pelo cardápio. Nesse caso o contato vem do formulário do carrinho, e
     // é por isso que ele é validado aqui com o mesmo rigor do cadastro.
@@ -61,6 +85,18 @@ export async function POST(request) {
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Seu carrinho está vazio.' }, { status: 400 })
     }
+
+    // Teto no tamanho do carrinho. `qty` já era limitado a 99, mas a
+    // quantidade de linhas não era: um POST com centenas de milhares de itens
+    // percorria o laço inteiro, montava um `$in` gigante e tentava gravar um
+    // documento perto do limite de 16 MB do Mongo. Route Handler não tem
+    // limite de corpo por padrão, então a barreira precisa estar aqui.
+    if (items.length > MAX_ITEMS) {
+      return NextResponse.json(
+        { error: `Seu carrinho passou de ${MAX_ITEMS} itens diferentes.` },
+        { status: 400 }
+      )
+    }
     if (!['pix', 'credit', 'debit'].includes(paymentMethod)) {
       return NextResponse.json({ error: 'Escolha a forma de pagamento.' }, { status: 400 })
     }
@@ -82,11 +118,70 @@ export async function POST(request) {
       )
     }
 
+    /**
+     * Freio do disparo em massa.
+     *
+     * As duas chaves se cobrem: sozinho, o limite por IP erra em prédio ou
+     * rede móvel, onde vários clientes de verdade saem pelo mesmo endereço;
+     * sozinho, o limite por telefone cai com um número novo a cada pedido.
+     * Os valores são folgados de propósito — quem está pedindo jantar de
+     * verdade não esbarra neles.
+     */
+    const limited = await checkLimits([
+      { key: `order:phone:${customerPhone}`, limit: 2, windowMs: 10 * MINUTE },
+      { key: `order:ip:${clientIp(request)}`, limit: 3, windowMs: 10 * MINUTE },
+    ])
+    if (!limited.ok) {
+      await logAuditThrottled({
+        throttleKey: `order_rl:${customerPhone}`,
+        windowMs: 10 * MINUTE,
+        action: 'order.rate_limited',
+        user,
+        ip: clientIp(request),
+        detail: { customerPhone, customerName },
+      })
+      return NextResponse.json(
+        { error: 'Você acabou de fazer um pedido. Aguarde alguns minutos para enviar outro.' },
+        { status: 429, headers: { 'Retry-After': String(limited.retryAfter) } }
+      )
+    }
+
     await connectDB()
+
+    /**
+     * Um pedido em aberto por telefone.
+     *
+     * É a trava mais eficaz contra o trote: o limite por tempo só atrasa quem
+     * insiste, mas isto impede que o mesmo número acumule pedidos na fila. E
+     * é uma regra que o cliente honesto entende — ele ainda não recebeu o
+     * anterior. Assim que a loja entrega ou cancela, o número libera.
+     */
+    const openOrder = await Order.findOne({
+      customerPhone,
+      status: { $in: OPEN_STATUS },
+    }).select('code')
+
+    if (openOrder) {
+      return NextResponse.json(
+        {
+          error: `Você já tem o pedido #${openOrder.code} em andamento. Fale com a loja pelo WhatsApp para alterá-lo.`,
+        },
+        { status: 409 }
+      )
+    }
 
     // Buscamos os produtos no banco e recalculamos o total: o preço que
     // vale é o do MongoDB, nunca o que veio do navegador.
-    const ids = [...new Set(items.map((i) => i.productId))]
+    //
+    // O filtro por `isValidObjectId` não é cosmético: sem ele, um
+    // `"productId": {"$ne": null}` entra no `$in` como objeto e a consulta
+    // passa a depender de como o Mongoose faz o cast. Aqui só chega string
+    // com formato de ObjectId.
+    const ids = [...new Set(items.map((i) => String(i.productId)).filter(isValidObjectId))]
+    if (ids.length === 0) {
+      return NextResponse.json({ error: 'Seu carrinho está vazio.' }, { status: 400 })
+    }
+
     const products = await Product.find({ _id: { $in: ids }, active: { $ne: false } }).lean()
     const productById = new Map(products.map((p) => [String(p._id), p]))
 
@@ -144,7 +239,15 @@ export async function POST(request) {
         reference: address?.reference?.trim() || '',
       },
       notes: String(notes || '').trim().slice(0, 500),
-      status: 'preparing',
+      /**
+       * O pedido nasce aguardando confirmação, não em preparação.
+       *
+       * Antes, qualquer POST colocava a cozinha para trabalhar: o custo de um
+       * trote era zero e o prejuízo, ingrediente de verdade. Agora existe um
+       * humano entre o pedido e a chapa — a loja confere o WhatsApp e clica
+       * em "Confirmar". Quem pediu vê "Recebido" e continua acompanhando.
+       */
+      status: 'awaiting_confirmation',
     })
 
     const message = buildWhatsAppMessage(order, SHOP.name, SHOP.pixKey)

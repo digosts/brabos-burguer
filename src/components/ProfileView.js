@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { useInstall } from '@/context/InstallContext'
 import { brl, formatPhone, maskPhone } from '@/lib/format'
+import { OPEN_STATUS } from '@/lib/orderStatus'
 import {
   IconCheckCircle,
   IconDownload,
@@ -45,7 +46,7 @@ export default function ProfileView() {
       .then(({ orders = [] }) =>
         setStats({
           total: orders.length,
-          active: orders.filter((o) => ['preparing', 'on_the_way'].includes(o.status)).length,
+          active: orders.filter((o) => OPEN_STATUS.includes(o.status)).length,
           spent: orders
             .filter((o) => o.status !== 'canceled')
             .reduce((sum, o) => sum + o.total, 0),

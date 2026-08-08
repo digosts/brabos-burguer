@@ -40,6 +40,17 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
 
+    /**
+     * Versão da sessão. Vai assinada dentro do token e é conferida a cada
+     * requisição em `getCurrentUser`.
+     *
+     * Incrementar este número invalida na hora todos os tokens já emitidos
+     * para o usuário. É o que dá efeito real a "troquei minha senha": sem
+     * ele, o token de quem tivesse roubado a sessão seguiria valendo até
+     * expirar sozinho, semanas depois.
+     */
+    tokenVersion: { type: Number, default: 0 },
+
     // Último endereço usado — pré-preenche o checkout na próxima compra.
     address: { type: addressSchema, default: () => ({}) },
 

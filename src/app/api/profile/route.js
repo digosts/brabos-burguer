@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
-import { getCurrentUser, hashPassword, comparePassword } from '@/lib/auth'
+import { getCurrentUser, hashPassword, comparePassword, setSessionCookie } from '@/lib/auth'
+import { clientIp } from '@/lib/rateLimit'
+import { logAudit } from '@/lib/audit'
 import User from '@/models/User'
 
 export async function PATCH(request) {
@@ -11,6 +13,7 @@ export async function PATCH(request) {
 
     // Recarrega com a senha para poder validar a troca.
     const user = await User.findById(current._id).select('+password')
+    let passwordChanged = false
 
     if (name !== undefined) {
       if (!String(name).trim()) {
@@ -64,9 +67,22 @@ export async function PATCH(request) {
         )
       }
       user.password = await hashPassword(newPassword)
+      // Mesma regra da redefinição por e-mail: senha nova derruba as sessões
+      // antigas, inclusive as de outros aparelhos.
+      user.tokenVersion = (user.tokenVersion || 0) + 1
+      passwordChanged = true
     }
 
     await user.save()
+
+    if (passwordChanged) {
+      // Sem isto, trocar a senha deslogaria quem acabou de trocá-la: o cookie
+      // no navegador dele ainda carrega a versão anterior. Emitimos um novo,
+      // já com a versão atual — as demais sessões continuam invalidadas.
+      await setSessionCookie(user)
+      await logAudit({ action: 'password.changed', user, ip: clientIp(request) })
+    }
+
     return NextResponse.json({ user: user.toPublic() })
   } catch (err) {
     // Mesma corrida do cadastro: duas edições simultâneas só colidem no índice.

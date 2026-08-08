@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
+import { OPEN_STATUS } from '@/lib/orderStatus'
 import Order from '@/models/Order'
 import { AuthProvider } from '@/context/AuthContext'
 import { CartProvider } from '@/context/CartContext'
@@ -18,15 +19,18 @@ export default async function AppLayout({ children }) {
     const doc = await getCurrentUser()
     if (doc) {
       user = doc.toPublic()
-      // Badge do menu: pedidos que ainda não foram entregues.
+      // Badge do menu: pedidos que ainda não foram entregues. `OPEN_STATUS`
+      // inclui os que aguardam confirmação — para o cliente, um pedido que
+      // ele acabou de mandar já conta como em andamento.
       activeOrders = await Order.countDocuments({
         user: doc._id,
-        status: { $in: ['preparing', 'on_the_way'] },
+        status: { $in: OPEN_STATUS },
       })
 
-      // Badge da gestão: a fila da loja inteira, só para o admin.
+      // Badge da gestão: a fila da loja inteira, só para o admin. Um pedido
+      // recusado sai da conta — senão o badge nunca zeraria.
       if (doc.role === 'admin') {
-        storeOpenOrders = await Order.countDocuments({ status: { $ne: 'delivered' } })
+        storeOpenOrders = await Order.countDocuments({ status: { $in: OPEN_STATUS } })
       }
     }
   } catch (err) {

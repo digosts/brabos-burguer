@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/mongodb'
 import Order from '@/models/Order'
 import { getCurrentAdmin } from '@/lib/auth'
+import { CLOSED_STATUS, OPEN_STATUS } from '@/lib/orderStatus'
 import { serializeAdminOrder } from '@/lib/serialize'
 
 /**
@@ -25,8 +26,12 @@ export async function GET(request) {
 
     await connectDB()
 
+    // Um pedido cancelado sai da fila mas não some: fica na aba de
+    // conferência, que é onde você confere um trote depois de recusá-lo.
     const filter =
-      scope === 'delivered' ? { status: 'delivered' } : { status: { $ne: 'delivered' } }
+      scope === 'delivered'
+        ? { status: { $in: CLOSED_STATUS } }
+        : { status: { $in: OPEN_STATUS } }
 
     // A fila de trabalho vai do mais antigo para o mais novo: o pedido que
     // está esperando há mais tempo aparece primeiro. Já a conferência mostra
