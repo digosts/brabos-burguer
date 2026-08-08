@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/mongodb'
 import User from '@/models/User'
-import { hashPassword, setSessionCookie } from '@/lib/auth'
+import { assertAuthConfigured, hashPassword, setSessionCookie } from '@/lib/auth'
 import { isValidEmail } from '@/lib/format'
 
 export async function POST(request) {
@@ -21,6 +21,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'A senha precisa ter no mínimo 6 caracteres.' }, { status: 400 })
     }
 
+    assertAuthConfigured()
     await connectDB()
 
     const normalizedEmail = email.trim().toLowerCase()

@@ -10,8 +10,18 @@ const MAX_AGE_SECONDS = 60 * 60 * 24 * 30 // 30 dias
 
 function secret() {
   const s = process.env.JWT_SECRET
-  if (!s) throw new Error('JWT_SECRET não definida no .env.local')
+  if (!s) throw new Error('JWT_SECRET não definida no ambiente')
   return s
+}
+
+/**
+ * Falha antes de qualquer escrita no banco.
+ * Sem isso, um ambiente sem JWT_SECRET criaria o usuário e só então
+ * estouraria ao assinar o cookie — deixando a conta órfã e o e-mail
+ * preso pelo índice único na segunda tentativa.
+ */
+export function assertAuthConfigured() {
+  secret()
 }
 
 export function hashPassword(plain) {
