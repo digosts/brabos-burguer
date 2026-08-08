@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { IconAlert, IconEye, IconEyeOff, IconLock } from '@/components/Icons'
+import { homePathFor } from '@/lib/home'
 
 export default function ResetForm({ token }) {
   const router = useRouter()
@@ -40,8 +41,9 @@ export default function ResetForm({ token }) {
         return
       }
 
-      // A API já devolve o cookie de sessão: entra direto no app.
-      router.replace('/inicio')
+      // A API já devolve o cookie de sessão: entra direto no app, na tela
+      // inicial do papel de quem redefiniu.
+      router.replace(homePathFor(data.user))
     } catch {
       setError('Sem conexão com o servidor. Verifique sua internet.')
     } finally {

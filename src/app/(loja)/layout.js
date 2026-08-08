@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
+import { homePathFor } from '@/lib/home'
 import { AuthProvider } from '@/context/AuthContext'
 import { CartProvider } from '@/context/CartContext'
 import { ToastProvider } from '@/context/ToastContext'
@@ -15,7 +16,7 @@ import GuestShell from '@/components/GuestShell'
  * misturadas no mesmo aparelho.
  */
 export default async function LojaLayout({ children }) {
-  let hasAccount = false
+  let user = null
 
   try {
     /**
@@ -28,7 +29,7 @@ export default async function LojaLayout({ children }) {
      * Não custa nada para o visitante comum: sem cookie, `getCurrentUser`
      * devolve null sem encostar no MongoDB.
      */
-    hasAccount = Boolean(await getCurrentUser())
+    user = await getCurrentUser()
   } catch (err) {
     // Banco fora do ar: o cardápio ainda abre (ele avisa sozinho que não
     // conseguiu carregar o menu), o que é melhor que uma tela de erro.
@@ -36,7 +37,8 @@ export default async function LojaLayout({ children }) {
   }
 
   // Fora do try: `redirect` sinaliza lançando uma exceção interna do Next.
-  if (hasAccount) redirect('/inicio')
+  // O admin que abrir a raiz do site vai para a gestão, não para o cardápio.
+  if (user) redirect(homePathFor(user))
 
   return (
     <AuthProvider initialUser={null}>

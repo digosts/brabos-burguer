@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { IconAlert, IconEye, IconEyeOff, IconLock, IconMail } from '@/components/Icons'
+import { homePathFor } from '@/lib/home'
 
 export default function LoginForm() {
   const router = useRouter()
@@ -31,8 +32,9 @@ export default function LoginForm() {
         return
       }
 
-      // `replace` para o botão voltar não retornar ao login.
-      router.replace('/inicio')
+      // `replace` para o botão voltar não retornar ao login. O admin vai
+      // direto para a gestão — ver `homePathFor`.
+      router.replace(homePathFor(data.user))
     } catch {
       setError('Sem conexão com o servidor. Verifique sua internet.')
     } finally {

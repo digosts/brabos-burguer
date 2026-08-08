@@ -98,28 +98,14 @@ export async function clearSessionCookie() {
 }
 
 /**
- * Existe sessão utilizável?
+ * Retorna o documento do usuário logado, ou null.
  *
- * Consulta o banco, apesar de só precisar de um sim/não. A versão anterior
- * conferia apenas a assinatura, para poupar uma consulta — mas com a
- * `tokenVersion` isso passou a mentir: um cookie revogado ainda tem
- * assinatura boa. Quem tentasse abrir /login com um cookie desses era mandado
- * para /inicio, que não o reconhecia e devolvia para o cardápio — sem nunca
- * conseguir chegar ao formulário de entrada.
+ * É o único jeito de responder "quem está aí?". Existia um `hasValidSession`
+ * que conferia só a assinatura do cookie, para poupar uma consulta; com a
+ * `tokenVersion` ele passou a mentir, porque um cookie revogado continua com
+ * assinatura boa. Foi removido em vez de corrigido: um atalho barato e errado
+ * exposto na API é um convite a reintroduzir o problema.
  */
-export async function hasValidSession() {
-  try {
-    return Boolean(await getCurrentUser())
-  } catch (err) {
-    // Banco fora do ar não pode derrubar a tela de login — ela é justamente
-    // onde alguém vai parar quando o resto falha. Na dúvida, "sem sessão":
-    // o pior caso é mostrar o formulário a quem já estava logado.
-    console.error('[hasValidSession]', err)
-    return false
-  }
-}
-
-/** Retorna o documento do usuário logado, ou null. */
 export async function getCurrentUser() {
   const store = await cookies()
   const token = store.get(COOKIE_NAME)?.value

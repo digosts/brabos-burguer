@@ -631,6 +631,9 @@ ol {
   align-items: center;
   gap: 4px;
   padding: 7px;
+  /* Teto de segurança: por mais que os rótulos cresçam, a barra não passa
+     das bordas da tela. */
+  max-width: calc(100vw - 16px);
   background: rgba(29, 29, 38, 0.78);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-full);
@@ -644,13 +647,29 @@ ol {
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  width: 76px;
-  padding: 9px 4px 7px;
+  /**
+   * Sem largura fixa: o item acompanha o rótulo.
+   *
+   * A caixa travada em 76px (62px nos aparelhos estreitos) não comportava
+   * "Meus pedidos" nem "Carrinho", que quebravam em duas linhas — e rótulo
+   * inteiro é justamente para o que o menu existe. `nowrap` é a garantia:
+   * a palavra nunca parte, o item é que cresce.
+   */
+  min-width: 58px;
+  padding: 9px clamp(9px, 3.2vw, 15px) 7px;
   border-radius: var(--r-full);
   color: var(--text-mute);
-  font-size: 10.5px;
+  /**
+   * Corpo do texto acompanhando a largura do aparelho, com piso e teto.
+   *
+   * Num iPhone SE fica no piso, o menor tamanho em que os quatro itens ainda
+   * cabem lado a lado; num telefone grande cresce até 13px em vez de deixar
+   * a barra com sobra e o texto miúdo.
+   */
+  font-size: clamp(11px, 3.1vw, 13px);
   font-weight: 650;
   letter-spacing: 0.01em;
+  white-space: nowrap;
   transition: color 0.2s, background 0.2s;
 }
 
@@ -667,7 +686,9 @@ ol {
 .fab-nav-item .badge {
   position: absolute;
   top: 4px;
-  right: 14px;
+  /* Acompanha o respiro lateral do item, para o badge não descolar do ícone
+     quando o menu encolhe num aparelho estreito. */
+  right: clamp(8px, 2.6vw, 14px);
   min-width: 17px;
   height: 17px;
   padding: 0 4px;
@@ -2114,14 +2135,28 @@ ol {
   margin-left: auto;
 }
 
-/* Com o item "Gestão" o menu ganha um quarto botão: em telas estreitas
-   os itens encolhem para a barra não passar da largura da tela. */
-@media (max-width: 390px) {
+/**
+ * Rede de proteção para os aparelhos mais estreitos que ainda circulam
+ * (iPhone SE antigo, 320px), onde o menu do cliente tem quatro itens.
+ *
+ * Com `nowrap` o rótulo não parte mais — o risco passou a ser a barra
+ * transbordar a tela. Nesses 320px o respiro lateral cede primeiro, e só
+ * então o corpo do texto. Texto um pouco menor é melhor que rótulo cortado,
+ * que era o problema de origem.
+ */
+@media (max-width: 340px) {
   .fab-nav-item {
-    width: 62px;
-    font-size: 10px;
+    min-width: 52px;
+    padding-left: 7px;
+    padding-right: 7px;
+    font-size: 10.5px;
   }
+}
 
+/* O menu não precisa mais de regra própria aqui: o `clamp` do tamanho da
+   fonte e do respiro já encolhe o item conforme a largura do aparelho, sem
+   a largura fixa que partia os rótulos em duas linhas. */
+@media (max-width: 390px) {
   .admin-actions,
   .order-actions {
     width: 100%;

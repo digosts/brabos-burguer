@@ -6,6 +6,12 @@ import CartButton from './CartButton'
 import CartSheet from './CartSheet'
 
 export default function AppShell({ ordersBadge = 0, isAdmin = false, adminBadge = 0, children }) {
+  // Quem opera a loja não compra nela: sem carrinho no topo e sem a gaveta
+  // do carrinho. O menu flutuante já seguia essa regra, mas o botão do topo
+  // tinha ficado para trás — e botão que não serve para nada só rende toque
+  // errado no meio do serviço.
+  const showCart = !isAdmin
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -18,16 +24,18 @@ export default function AppShell({ ordersBadge = 0, isAdmin = false, adminBadge 
             </div>
           </div>
 
-          <div className="topbar-actions">
-            <CartButton />
-          </div>
+          {showCart ? (
+            <div className="topbar-actions">
+              <CartButton />
+            </div>
+          ) : null}
         </div>
       </header>
 
       <main className="container page">{children}</main>
 
       <FloatingMenu ordersBadge={ordersBadge} isAdmin={isAdmin} adminBadge={adminBadge} />
-      <CartSheet />
+      {showCart ? <CartSheet /> : null}
     </div>
   )
 }

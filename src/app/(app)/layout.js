@@ -19,18 +19,23 @@ export default async function AppLayout({ children }) {
     const doc = await getCurrentUser()
     if (doc) {
       user = doc.toPublic()
-      // Badge do menu: pedidos que ainda não foram entregues. `OPEN_STATUS`
-      // inclui os que aguardam confirmação — para o cliente, um pedido que
-      // ele acabou de mandar já conta como em andamento.
-      activeOrders = await Order.countDocuments({
-        user: doc._id,
-        status: { $in: OPEN_STATUS },
-      })
 
-      // Badge da gestão: a fila da loja inteira, só para o admin. Um pedido
-      // recusado sai da conta — senão o badge nunca zeraria.
       if (doc.role === 'admin') {
+        // Badge da gestão: a fila da loja inteira. Um pedido recusado sai da
+        // conta — senão o badge nunca zeraria.
         storeOpenOrders = await Order.countDocuments({ status: { $in: OPEN_STATUS } })
+      } else {
+        // Badge do menu do cliente: pedidos dele que ainda não foram entregues.
+        // `OPEN_STATUS` inclui os que aguardam confirmação — para quem pediu,
+        // um pedido recém-enviado já conta como em andamento.
+        //
+        // Não é calculado para o admin: o menu dele não tem "Pedidos", então
+        // seria uma consulta por navegação para alimentar um badge que não
+        // existe na tela.
+        activeOrders = await Order.countDocuments({
+          user: doc._id,
+          status: { $in: OPEN_STATUS },
+        })
       }
     }
   } catch (err) {

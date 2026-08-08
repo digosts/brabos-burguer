@@ -5,13 +5,25 @@ import { usePathname } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
 import { IconCart, IconHome, IconReceipt, IconTruck, IconUser } from './Icons'
 
+const PERFIL_ITEM = { href: '/perfil', label: 'Perfil', Icon: IconUser }
+
 const ITEMS = [
   { href: '/inicio', label: 'Início', Icon: IconHome },
   { href: '/pedidos', label: 'Pedidos', Icon: IconReceipt },
-  { href: '/perfil', label: 'Perfil', Icon: IconUser },
+  PERFIL_ITEM,
 ]
 
-const ADMIN_ITEM = { href: '/admin/pedidos', label: 'Gestão', Icon: IconTruck, admin: true }
+/**
+ * Menu do admin: gestão e perfil, só.
+ *
+ * "Início" e "Pedidos" são as telas de quem compra — cardápio e histórico de
+ * compras próprias. Quem opera a loja não usa nenhuma das duas, e cada item a
+ * mais come a largura que os rótulos precisam para caber inteiros no celular.
+ */
+const ADMIN_ITEMS = [
+  { href: '/admin/pedidos', label: 'Gestão', Icon: IconTruck, admin: true },
+  PERFIL_ITEM,
+]
 
 /**
  * `items` só é passado pela área pública, que tem outro conjunto de telas.
@@ -21,9 +33,9 @@ export default function FloatingMenu({ items, ordersBadge = 0, isAdmin = false, 
   const pathname = usePathname()
   const { count, isOpen, setOpen } = useCart()
 
-  // Esconder o item é só conforto visual: quem não é admin também não passa
-  // pelo layout de /admin nem pelas rotas de API, que verificam no servidor.
-  const list = items || (isAdmin ? [...ITEMS, ADMIN_ITEM] : ITEMS)
+  // O menu é só conforto visual: quem não é admin também não passa pelo
+  // layout de /admin nem pelas rotas de API, que verificam no servidor.
+  const list = items || (isAdmin ? ADMIN_ITEMS : ITEMS)
 
   // O carrinho aparece aqui além do botão da barra do topo: quem está
   // escolhendo produtos tem o polegar embaixo, e subir a mão até o topo da
