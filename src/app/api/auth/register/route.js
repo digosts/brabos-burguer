@@ -25,23 +25,54 @@ export async function POST(request) {
     await connectDB()
 
     const normalizedEmail = email.trim().toLowerCase()
-    if (await User.exists({ email: normalizedEmail })) {
-      return NextResponse.json({ error: 'Este e-mail já está cadastrado.' }, { status: 409 })
+    const normalizedPhone = String(phone).replace(/\D/g, '')
+
+    // E-mail e telefone identificam o cliente na entrega: nenhum dos dois
+    // pode se repetir. Esta checagem dá a mensagem clara; quem garante de
+    // verdade são os índices únicos, logo abaixo no catch.
+    const [emailTaken, phoneTaken] = await Promise.all([
+      User.exists({ email: normalizedEmail }),
+      User.exists({ phone: normalizedPhone }),
+    ])
+
+    if (emailTaken) {
+      return NextResponse.json(
+        { error: 'Este e-mail já está cadastrado.', field: 'email' },
+        { status: 409 }
+      )
+    }
+    if (phoneTaken) {
+      return NextResponse.json(
+        { error: 'Este telefone já está cadastrado.', field: 'phone' },
+        { status: 409 }
+      )
     }
 
     const user = await User.create({
       name: name.trim(),
       email: normalizedEmail,
-      phone: String(phone).replace(/\D/g, ''),
+      phone: normalizedPhone,
       password: await hashPassword(password),
     })
 
     await setSessionCookie(user._id)
     return NextResponse.json({ user: user.toPublic() }, { status: 201 })
   } catch (err) {
-    // Corrida entre dois cadastros com o mesmo e-mail cai no índice único.
+    // Dois cadastros simultâneos passam pela checagem acima e só colidem
+    // aqui, no índice único. `keyPattern` diz qual campo bateu — sem isso
+    // uma colisão de telefone reportaria "e-mail já cadastrado".
     if (err?.code === 11000) {
-      return NextResponse.json({ error: 'Este e-mail já está cadastrado.' }, { status: 409 })
+      const field = Object.keys(err.keyPattern || {})[0] === 'phone' ? 'phone' : 'email'
+      return NextResponse.json(
+        {
+          error:
+            field === 'phone'
+              ? 'Este telefone já está cadastrado.'
+              : 'Este e-mail já está cadastrado.',
+          field,
+        },
+        { status: 409 }
+      )
     }
     console.error('[register]', err)
     return NextResponse.json({ error: 'Não foi possível criar a conta.' }, { status: 500 })

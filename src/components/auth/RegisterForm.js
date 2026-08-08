@@ -46,6 +46,9 @@ export default function RegisterForm() {
 
       if (!res.ok) {
         setError(data.error || 'Não foi possível criar a conta.')
+        // A API diz qual campo colidiu ("email" ou "phone") — marcamos o
+        // input para o usuário não ter que caçar o problema no formulário.
+        if (data.field) setFieldErrors((prev) => ({ ...prev, [data.field]: data.error }))
         return
       }
 

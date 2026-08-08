@@ -9,7 +9,8 @@
     "start": "next start",
     "seed": "node scripts/seed.mjs",
     "icons": "node scripts/generate-icons.mjs",
-    "admin": "node scripts/set-admin.mjs"
+    "admin": "node scripts/set-admin.mjs",
+    "check-users": "node scripts/check-users.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

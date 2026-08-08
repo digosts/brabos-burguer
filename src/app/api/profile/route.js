@@ -24,6 +24,19 @@ export async function PATCH(request) {
       if (digits.length < 10) {
         return NextResponse.json({ error: 'Telefone inválido. Informe DDD + número.' }, { status: 400 })
       }
+
+      // Sem isto, dava para contornar a regra do cadastro: criar a conta com
+      // um telefone livre e depois editá-la para o telefone de outra pessoa.
+      if (digits !== user.phone) {
+        const taken = await User.exists({ phone: digits, _id: { $ne: user._id } })
+        if (taken) {
+          return NextResponse.json(
+            { error: 'Este telefone já está cadastrado em outra conta.', field: 'phone' },
+            { status: 409 }
+          )
+        }
+      }
+
       user.phone = digits
     }
 
@@ -56,6 +69,13 @@ export async function PATCH(request) {
     await user.save()
     return NextResponse.json({ user: user.toPublic() })
   } catch (err) {
+    // Mesma corrida do cadastro: duas edições simultâneas só colidem no índice.
+    if (err?.code === 11000) {
+      return NextResponse.json(
+        { error: 'Este telefone já está cadastrado em outra conta.', field: 'phone' },
+        { status: 409 }
+      )
+    }
     console.error('[profile:PATCH]', err)
     return NextResponse.json({ error: 'Não foi possível salvar as alterações.' }, { status: 500 })
   }
