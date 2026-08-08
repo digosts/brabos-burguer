@@ -103,4 +103,12 @@ const orderSchema = new mongoose.Schema(
 
 orderSchema.index({ user: 1, createdAt: -1 })
 
+/**
+ * Sustenta a checagem de "já existe pedido não confirmado deste telefone?",
+ * feita em todo pedido novo. Sem ela a consulta varre a coleção de pedidos —
+ * um custo que cresce com o movimento da loja e que aparece justamente na
+ * hora de mais movimento.
+ */
+orderSchema.index({ customerPhone: 1, status: 1 })
+
 export default mongoose.models.Order || mongoose.model('Order', orderSchema)

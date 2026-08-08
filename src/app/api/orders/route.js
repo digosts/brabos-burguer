@@ -7,7 +7,6 @@ import { nextOrderCode } from '@/models/Counter'
 import { getCurrentUser } from '@/lib/auth'
 import { checkLimits, clientIp, MINUTE } from '@/lib/rateLimit'
 import { logAuditThrottled } from '@/lib/audit'
-import { OPEN_STATUS } from '@/lib/orderStatus'
 import { SHOP } from '@/lib/shop'
 import { serializeOrder } from '@/lib/serialize'
 import { buildWhatsAppMessage, buildWhatsAppUrl } from '@/lib/whatsapp'
@@ -118,19 +117,64 @@ export async function POST(request) {
       )
     }
 
+    await connectDB()
+
+    /**
+     * Um pedido *não confirmado* por telefone.
+     *
+     * A trava é só sobre `awaiting_confirmation`, e isso é deliberado. O que o
+     * trote faz é empilhar pedidos que ninguém conferiu; assim que a loja
+     * confirma o primeiro, o telefone volta a poder pedir.
+     *
+     * A primeira versão barrava qualquer pedido ainda não entregue. Duas
+     * consequências ruins, as duas contra o cliente certo: quem quisesse pedir
+     * o almoço e depois a janta ficava preso até a loja clicar em "Entregue",
+     * e numa sexta cheia esse clique atrasa — o bloqueio passava a depender da
+     * diligência da loja, não do comportamento de quem pede. Confirmar, ao
+     * contrário, a loja faz na hora, porque é o que libera a cozinha.
+     *
+     * Vem antes do limite de frequência de propósito: este 409 é um "espere um
+     * instante", não uma punição. Se rodasse depois, a tentativa que cai aqui
+     * já teria gasto uma vaga do limite, e o cliente que tentou cedo demais
+     * levaria 429 na hora certa de pedir.
+     */
+    const unconfirmed = await Order.findOne({
+      customerPhone,
+      status: 'awaiting_confirmation',
+    }).select('code')
+
+    if (unconfirmed) {
+      return NextResponse.json(
+        {
+          error: `Seu pedido #${unconfirmed.code} ainda está aguardando a loja confirmar. Assim que ele for confirmado você já pode enviar outro.`,
+        },
+        { status: 409 }
+      )
+    }
+
     /**
      * Freio do disparo em massa.
      *
-     * As duas chaves se cobrem: sozinho, o limite por IP erra em prédio ou
-     * rede móvel, onde vários clientes de verdade saem pelo mesmo endereço;
-     * sozinho, o limite por telefone cai com um número novo a cada pedido.
-     * Os valores são folgados de propósito — quem está pedindo jantar de
-     * verdade não esbarra neles.
+     * O limite por telefone vale para todo mundo, e é o preciso: identifica a
+     * pessoa. O limite por IP só entra no pedido sem conta — e é grosso de
+     * propósito.
+     *
+     * O motivo é que IP identifica mal quem pede. Uma casa com Wi-Fi é um
+     * endereço só para a família inteira, e as operadoras de celular no Brasil
+     * usam CGNAT: um bairro inteiro pode sair pelo mesmo IP público. Apertar
+     * essa chave recusa cliente de verdade sem nunca ver a cara do atacante,
+     * que troca de IP quando quer.
+     *
+     * Quem está logado não passa por ela: a conta já é a identidade, e o limite
+     * por telefone dá conta. É o que permite duas pessoas da mesma casa pedirem
+     * no mesmo minuto, cada uma da sua conta.
      */
-    const limited = await checkLimits([
-      { key: `order:phone:${customerPhone}`, limit: 2, windowMs: 10 * MINUTE },
-      { key: `order:ip:${clientIp(request)}`, limit: 3, windowMs: 10 * MINUTE },
-    ])
+    const limits = [{ key: `order:phone:${customerPhone}`, limit: 3, windowMs: 10 * MINUTE }]
+    if (!user) {
+      limits.push({ key: `order:ip:${clientIp(request)}`, limit: 8, windowMs: 10 * MINUTE })
+    }
+
+    const limited = await checkLimits(limits)
     if (!limited.ok) {
       await logAuditThrottled({
         throttleKey: `order_rl:${customerPhone}`,
@@ -141,32 +185,8 @@ export async function POST(request) {
         detail: { customerPhone, customerName },
       })
       return NextResponse.json(
-        { error: 'Você acabou de fazer um pedido. Aguarde alguns minutos para enviar outro.' },
+        { error: 'Você enviou vários pedidos seguidos. Aguarde alguns minutos ou fale com a loja pelo WhatsApp.' },
         { status: 429, headers: { 'Retry-After': String(limited.retryAfter) } }
-      )
-    }
-
-    await connectDB()
-
-    /**
-     * Um pedido em aberto por telefone.
-     *
-     * É a trava mais eficaz contra o trote: o limite por tempo só atrasa quem
-     * insiste, mas isto impede que o mesmo número acumule pedidos na fila. E
-     * é uma regra que o cliente honesto entende — ele ainda não recebeu o
-     * anterior. Assim que a loja entrega ou cancela, o número libera.
-     */
-    const openOrder = await Order.findOne({
-      customerPhone,
-      status: { $in: OPEN_STATUS },
-    }).select('code')
-
-    if (openOrder) {
-      return NextResponse.json(
-        {
-          error: `Você já tem o pedido #${openOrder.code} em andamento. Fale com a loja pelo WhatsApp para alterá-lo.`,
-        },
-        { status: 409 }
       )
     }
 
