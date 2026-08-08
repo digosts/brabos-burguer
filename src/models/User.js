@@ -25,6 +25,21 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, required: true, trim: true },
     password: { type: String, required: true, select: false },
 
+    /**
+     * Quem pode administrar os pedidos da loja.
+     *
+     * Só é alterado pelo script `npm run admin` (acesso direto ao banco).
+     * Nenhuma rota da API lê este campo do corpo da requisição — o cadastro
+     * e o perfil montam o documento com campos explícitos, então mandar
+     * `{"role":"admin"}` num POST não tem efeito nenhum.
+     */
+    role: {
+      type: String,
+      enum: ['customer', 'admin'],
+      default: 'customer',
+      index: true,
+    },
+
     // Último endereço usado — pré-preenche o checkout na próxima compra.
     address: { type: addressSchema, default: () => ({}) },
 
@@ -40,6 +55,9 @@ userSchema.methods.toPublic = function () {
     name: this.name,
     email: this.email,
     phone: this.phone,
+    // Só para a interface decidir o que desenhar. Quem autoriza de verdade
+    // é o servidor, a cada requisição — nunca este campo.
+    isAdmin: this.role === 'admin',
     address: {
       street: this.address?.street || '',
       number: this.address?.number || '',

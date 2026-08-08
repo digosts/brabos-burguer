@@ -85,6 +85,22 @@ export async function getCurrentUser() {
   return User.findById(payload.sub)
 }
 
+/**
+ * Ponto único de autorização do admin.
+ *
+ * Devolve o documento do usuário só se ele for admin — caso contrário null.
+ * Consulta sempre o banco (via `getCurrentUser`), nunca o cookie: o papel é
+ * lido do documento no momento da requisição, então revogar um admin no
+ * banco tem efeito imediato, sem esperar a sessão expirar.
+ *
+ * Toda rota e toda tela do /admin passa por aqui. Esconder o botão no menu
+ * é só cosmético; a barreira real é esta função.
+ */
+export async function getCurrentAdmin() {
+  const user = await getCurrentUser()
+  return user?.role === 'admin' ? user : null
+}
+
 /** Token de redefinição de senha: guardamos só o hash no banco. */
 export function createResetToken() {
   const token = crypto.randomBytes(32).toString('hex')

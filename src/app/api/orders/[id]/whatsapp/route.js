@@ -18,7 +18,10 @@ export async function GET(request, { params }) {
     const order = await Order.findOne({ _id: id, user: user._id })
     if (!order) return NextResponse.json({ error: 'Pedido não encontrado.' }, { status: 404 })
 
-    const message = order.whatsappMessage || buildWhatsAppMessage(order, SHOP.name)
+    // Remontamos sempre em vez de usar `order.whatsappMessage`: os pedidos
+    // antigos foram salvos com emoji, que chegava quebrado no WhatsApp.
+    // O campo salvo continua no banco só para auditoria.
+    const message = buildWhatsAppMessage(order, SHOP.name)
 
     return NextResponse.json({
       whatsappUrl: SHOP.whatsapp ? buildWhatsAppUrl(SHOP.whatsapp, message) : null,

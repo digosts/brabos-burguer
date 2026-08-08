@@ -42,18 +42,25 @@ loadEnv()
 
 const MENU = [
   {
-    name: 'Hambúrgueres',
+    name: 'Lanches',
     icon: '🍔',
     description: 'Blend artesanal de 180g, feito na chapa',
     order: 1,
     products: [
       {
-        name: 'X-Bacon Clássico',
-        description: 'Pão brioche, blend 180g, cheddar inglês, bacon crocante e maionese da casa',
-        price: 32.9,
-        tag: 'Mais pedido',
+        name: 'X-Salada da Casa',
+        description: 'Pão brioche, blend 180g, queijo prato, alface americana, tomate e cebola',
+        price: 28.9,
         image:
           'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=70',
+      },
+      {
+        name: 'X-Bacon Duplo',
+        description: 'Dois blends de 180g, cheddar inglês, bacon crocante e maionese da casa',
+        price: 36.9,
+        tag: 'Mais pedido',
+        image:
+          'https://images.unsplash.com/photo-1553979459-d2229ba7433b?auto=format&fit=crop&w=600&q=70',
       },
       {
         name: 'Duplo Cheddar',
@@ -61,22 +68,7 @@ const MENU = [
         price: 41.9,
         oldPrice: 46.9,
         image:
-          'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=600&q=70',
-      },
-      {
-        name: 'Salada da Casa',
-        description: 'Blend 180g, queijo prato, alface americana, tomate e picles',
-        price: 28.9,
-        image:
           'https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=600&q=70',
-      },
-      {
-        name: 'Veggie de Grão-de-bico',
-        description: 'Hambúrguer de grão-de-bico, queijo vegano, rúcula e maionese de ervas',
-        price: 29.9,
-        tag: 'Vegetariano',
-        image:
-          'https://images.unsplash.com/photo-1520072959219-c595dc870360?auto=format&fit=crop&w=600&q=70',
       },
     ],
   },
@@ -87,19 +79,18 @@ const MENU = [
     order: 2,
     products: [
       {
+        name: 'Batata Frita Média',
+        description: 'Porção individual de batata rústica com páprica e sal marinho',
+        price: 14.9,
+        image:
+          'https://images.unsplash.com/photo-1518013431117-eb1465fa5752?auto=format&fit=crop&w=600&q=70',
+      },
+      {
         name: 'Batata Frita Grande',
-        description: 'Batata rústica com páprica e sal marinho',
+        description: 'Batata rústica com páprica e sal marinho, serve duas pessoas',
         price: 18.9,
         image:
           'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&q=70',
-      },
-      {
-        name: 'Batata com Cheddar e Bacon',
-        description: 'Batata frita coberta com cheddar cremoso e bacon em cubos',
-        price: 26.9,
-        tag: 'Favorito',
-        image:
-          'https://images.unsplash.com/photo-1630431341973-02e1b662ec35?auto=format&fit=crop&w=600&q=70',
       },
       {
         name: 'Onion Rings',
@@ -113,50 +104,36 @@ const MENU = [
   {
     name: 'Bebidas',
     icon: '🥤',
+    description: 'Tudo servido bem gelado',
     order: 3,
     products: [
       {
-        name: 'Refrigerante Lata 350ml',
-        description: 'Cola, guaraná ou laranja',
+        name: 'Coca-Cola Lata 350ml',
+        description: 'Lata gelada, servida com copo e gelo se você quiser',
         price: 7.5,
         image:
           'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=600&q=70',
       },
       {
+        name: 'Fanta Laranja Lata 350ml',
+        description: 'Refrigerante de laranja bem gelado',
+        price: 7.5,
+        image:
+          'https://images.unsplash.com/photo-1624517452488-04869289c4ca?auto=format&fit=crop&w=600&q=70',
+      },
+      {
+        name: 'Schweppes Tônica Lata 350ml',
+        description: 'Água tônica gelada, com gás',
+        price: 8.5,
+        image:
+          'https://images.unsplash.com/photo-1581006852262-e4307cf6283a?auto=format&fit=crop&w=600&q=70',
+      },
+      {
         name: 'Suco Natural de Laranja 500ml',
-        description: 'Feito na hora, sem açúcar',
+        description: 'Espremido na hora, sem açúcar',
         price: 12.9,
         image:
           'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=600&q=70',
-      },
-      {
-        name: 'Milkshake de Ovomaltine 400ml',
-        description: 'Sorvete de creme batido com Ovomaltine crocante',
-        price: 22.9,
-        tag: 'Novo',
-        image:
-          'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=70',
-      },
-    ],
-  },
-  {
-    name: 'Sobremesas',
-    icon: '🍰',
-    order: 4,
-    products: [
-      {
-        name: 'Petit Gâteau',
-        description: 'Bolo quente de chocolate com sorvete de creme',
-        price: 24.9,
-        image:
-          'https://images.unsplash.com/photo-1624353365286-3f8d62daad51?auto=format&fit=crop&w=600&q=70',
-      },
-      {
-        name: 'Cheesecake de Frutas Vermelhas',
-        description: 'Fatia generosa com calda artesanal',
-        price: 19.9,
-        image:
-          'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?auto=format&fit=crop&w=600&q=70',
       },
     ],
   },

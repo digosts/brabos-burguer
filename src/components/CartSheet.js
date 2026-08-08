@@ -30,6 +30,7 @@ export default function CartSheet() {
   const router = useRouter()
 
   const [address, setAddress] = useState(EMPTY_ADDRESS)
+  const [addressTouched, setAddressTouched] = useState(false)
   const [payment, setPayment] = useState('')
   const [orderNotes, setOrderNotes] = useState('')
   const [changeFor, setChangeFor] = useState('')
@@ -38,12 +39,16 @@ export default function CartSheet() {
   const [openNoteFor, setOpenNoteFor] = useState(null)
   const [result, setResult] = useState(null)
 
-  // Pré-preenche com o endereço do último pedido.
+  // Pré-preenche com o endereço salvo no perfil (o do último pedido).
+  // Depois que o cliente mexe nos campos, o que ele digitou manda: sem essa
+  // trava, qualquer atualização do usuário (salvar o perfil, revalidar a
+  // sessão) apagaria o endereço que ele estava escrevendo aqui.
   useEffect(() => {
+    if (addressTouched) return
     if (user?.address) {
       setAddress({ ...EMPTY_ADDRESS, ...user.address })
     }
-  }, [user])
+  }, [user, addressTouched])
 
   const deliveryFee = SHOP.deliveryFee
   const total = subtotal + deliveryFee
@@ -51,6 +56,7 @@ export default function CartSheet() {
   const belowMinimum = SHOP.minOrder > 0 && subtotal < SHOP.minOrder
 
   const setField = (key) => (e) => {
+    setAddressTouched(true)
     setAddress((prev) => ({ ...prev, [key]: e.target.value }))
     setErrors((prev) => ({ ...prev, [key]: undefined }))
   }
@@ -71,6 +77,12 @@ export default function CartSheet() {
       return
     }
 
+    // A aba precisa nascer aqui dentro, ainda no clique: depois do `await`
+    // o navegador trata window.open como pop-up e bloqueia. Ela fica em
+    // branco por um instante e recebe a URL assim que o pedido é salvo.
+    const waTab = SHOP.whatsapp ? window.open('', '_blank') : null
+    if (waTab) waTab.opener = null
+
     setSubmitting(true)
     try {
       const res = await fetch('/api/orders', {
@@ -88,6 +100,7 @@ export default function CartSheet() {
       const data = await res.json()
 
       if (!res.ok) {
+        waTab?.close()
         toast(data.error || 'Não foi possível enviar o pedido', 'error')
         // A API devolve quais campos de endereço faltaram.
         if (Array.isArray(data.fields)) {
@@ -104,7 +117,18 @@ export default function CartSheet() {
       clear()
       setUser((prev) => (prev ? { ...prev, address: data.order.address } : prev))
       router.refresh()
+
+      // Abre o WhatsApp sozinho, para o cliente não esquecer de mandar.
+      // Se o pop-up foi bloqueado, vai na própria aba: o pedido já está
+      // salvo e pode ser reenviado depois pela tela de pedidos.
+      if (data.whatsappUrl) {
+        if (waTab) waTab.location.href = data.whatsappUrl
+        else window.location.href = data.whatsappUrl
+      } else {
+        waTab?.close()
+      }
     } catch (err) {
+      waTab?.close()
       console.error(err)
       toast('Sem conexão. Verifique a internet e tente de novo.', 'error')
     } finally {
@@ -137,7 +161,7 @@ export default function CartSheet() {
               rel="noopener noreferrer"
             >
               <IconWhatsApp size={20} />
-              Enviar pedido pelo WhatsApp
+              Abrir o WhatsApp com o pedido
             </a>
           ) : null}
           <button
@@ -227,16 +251,16 @@ export default function CartSheet() {
             </div>
             <strong>Recebemos seu pedido #{result.order.code}</strong>
             <p>
-              Falta só um toque: envie o resumo pelo WhatsApp para a cozinha
-              começar a preparar.
+              Abrimos o WhatsApp com o resumo pronto. Toque em enviar lá para a
+              cozinha começar a preparar.
             </p>
           </div>
 
           <div className="alert alert-info">
             <IconWhatsApp size={16} />
             <span>
-              O botão abaixo abre o WhatsApp com o pedido já escrito. Basta tocar
-              em enviar.
+              Se o WhatsApp não abrir sozinho, use o botão abaixo. Seu pedido já
+              está salvo de qualquer jeito — dá para reenviar em “Pedidos”.
             </span>
           </div>
 
@@ -372,6 +396,13 @@ export default function CartSheet() {
               Endereço de entrega
               <span className="req-badge">Obrigatório</span>
             </div>
+
+            {user?.address?.street && !addressTouched ? (
+              <p className="field-hint" style={{ marginTop: -6, marginBottom: 12 }}>
+                Preenchemos com o endereço do seu último pedido — é só alterar se
+                a entrega for em outro lugar.
+              </p>
+            ) : null}
 
             <div className="row row-street">
               <label className="field" style={{ margin: 0 }}>

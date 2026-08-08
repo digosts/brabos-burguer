@@ -11,6 +11,7 @@ import SetupError from '@/components/SetupError'
 export default async function AppLayout({ children }) {
   let user = null
   let activeOrders = 0
+  let storeOpenOrders = 0
   let dbError = null
 
   try {
@@ -22,6 +23,11 @@ export default async function AppLayout({ children }) {
         user: doc._id,
         status: { $in: ['preparing', 'on_the_way'] },
       })
+
+      // Badge da gestão: a fila da loja inteira, só para o admin.
+      if (doc.role === 'admin') {
+        storeOpenOrders = await Order.countDocuments({ status: { $ne: 'delivered' } })
+      }
     }
   } catch (err) {
     console.error('[app layout]', err)
@@ -38,7 +44,13 @@ export default async function AppLayout({ children }) {
     <AuthProvider initialUser={user}>
       <ToastProvider>
         <CartProvider>
-          <AppShell ordersBadge={activeOrders}>{children}</AppShell>
+          <AppShell
+            ordersBadge={activeOrders}
+            isAdmin={user.isAdmin}
+            adminBadge={storeOpenOrders}
+          >
+            {children}
+          </AppShell>
         </CartProvider>
       </ToastProvider>
     </AuthProvider>

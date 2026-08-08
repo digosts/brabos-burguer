@@ -25,6 +25,13 @@ const STEPS = [
   { label: 'Entregue', Icon: IconCheck },
 ]
 
+/**
+ * O "Reenviar" existe para quem fechou o app antes de mandar a mensagem no
+ * WhatsApp. A partir do momento em que a loja move o pedido para a rota, ela
+ * claramente já recebeu — reenviar ali só confunde o cliente.
+ */
+const HIDE_RESEND_STATUS = ['on_the_way', 'delivered']
+
 function Track({ step }) {
   return (
     <div className="track" aria-label={`Etapa ${step + 1} de ${STEPS.length}`}>
@@ -220,19 +227,21 @@ export default function OrdersView() {
               </small>
             </div>
 
-            <button
-              className="btn btn-wa btn-sm"
-              style={{ marginLeft: 'auto' }}
-              onClick={() => resend(order.id)}
-              disabled={resending === order.id}
-            >
-              {resending === order.id ? (
-                <span className="spinner" />
-              ) : (
-                <IconWhatsApp size={16} />
-              )}
-              Reenviar
-            </button>
+            {!HIDE_RESEND_STATUS.includes(order.status) ? (
+              <button
+                className="btn btn-wa btn-sm"
+                style={{ marginLeft: 'auto' }}
+                onClick={() => resend(order.id)}
+                disabled={resending === order.id}
+              >
+                {resending === order.id ? (
+                  <span className="spinner" />
+                ) : (
+                  <IconWhatsApp size={16} />
+                )}
+                Reenviar
+              </button>
+            ) : null}
           </div>
         </article>
       ))}

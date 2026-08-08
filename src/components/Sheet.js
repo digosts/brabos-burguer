@@ -9,26 +9,36 @@ import { IconX } from './Icons'
  */
 export default function Sheet({ open, onClose, title, subtitle, footer, children }) {
   const panelRef = useRef(null)
+  const onCloseRef = useRef(onClose)
+
+  // Quem usa o Sheet costuma passar uma função nova a cada render. Guardá-la
+  // numa ref mantém o Esc sempre atualizado sem colocá-la nas dependências
+  // do efeito de abertura.
+  useEffect(() => {
+    onCloseRef.current = onClose
+  })
 
   useEffect(() => {
     if (!open) return
 
     const onKey = (e) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onCloseRef.current()
     }
     document.addEventListener('keydown', onKey)
 
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
-    // Foco no painel para quem navega por teclado / leitor de tela.
+    // Foco no painel para quem navega por teclado / leitor de tela. Só na
+    // abertura: repetir isso a cada render roubava o foco de quem estivesse
+    // digitando dentro do sheet, letra por letra.
     panelRef.current?.focus()
 
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = previous
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 

@@ -7,7 +7,7 @@ import CartFab from './CartFab'
 import CartSheet from './CartSheet'
 import { IconCart } from './Icons'
 
-export default function AppShell({ ordersBadge = 0, children }) {
+export default function AppShell({ ordersBadge = 0, isAdmin = false, adminBadge = 0, children }) {
   const { count, setOpen } = useCart()
 
   return (
@@ -60,7 +60,7 @@ export default function AppShell({ ordersBadge = 0, children }) {
       <main className="container page">{children}</main>
 
       <CartFab />
-      <FloatingMenu ordersBadge={ordersBadge} />
+      <FloatingMenu ordersBadge={ordersBadge} isAdmin={isAdmin} adminBadge={adminBadge} />
       <CartSheet />
     </div>
   )

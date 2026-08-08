@@ -32,3 +32,19 @@ export function serializeOrder(order) {
     createdAt: order.createdAt,
   }
 }
+
+/**
+ * Versão para as telas do admin: acrescenta o contato do cliente e a data
+ * da última mudança de status.
+ *
+ * Fica separada de `serializeOrder` de propósito — o cliente comum nunca
+ * deve receber campos a mais do que já recebe hoje.
+ */
+export function serializeAdminOrder(order) {
+  return {
+    ...serializeOrder(order),
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+    updatedAt: order.updatedAt,
+  }
+}

@@ -2,7 +2,7 @@
  *
  * Suba o número da versão para forçar a atualização em quem já instalou.
  */
-const VERSION = 'v1'
+const VERSION = 'v2'
 const STATIC_CACHE = `burger-static-${VERSION}`
 const PAGES_CACHE = `burger-pages-${VERSION}`
 const DATA_CACHE = `burger-data-${VERSION}`
