@@ -17,6 +17,14 @@ const asciiSafe = (value) => String(value ?? '').replace(/[  ]/g, ' ')
 const money = (value) => asciiSafe(brl(value))
 
 /**
+ * A mensagem é montada na API, e o servidor de produção roda em UTC — sem
+ * `timeZone` o horário saía 3h adiantado ("18:51" num pedido feito às 15:51).
+ * O fuso é o da loja, não o de quem pediu: quem lê essa linha é a cozinha.
+ */
+const formatCreatedAt = (value) =>
+  new Date(value).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+
+/**
  * Monta a mensagem que chega no WhatsApp da produção.
  * O `*texto*` vira negrito e o `_texto_` vira itálico no WhatsApp.
  */
@@ -82,7 +90,7 @@ export function buildWhatsAppMessage(order, shopName = 'Burger House', pixKey = 
 
   L.push('')
   L.push(LINE)
-  const createdAt = new Date(order.createdAt || Date.now()).toLocaleString('pt-BR')
+  const createdAt = formatCreatedAt(order.createdAt || Date.now())
   L.push(`Pedido feito em ${asciiSafe(createdAt)}`)
 
   return L.join('\n')
