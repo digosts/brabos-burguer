@@ -16,6 +16,22 @@ const newLineId = () => `${Date.now().toString(36)}${Math.random().toString(36).
 /** Preço de uma unidade da linha, já com os adicionais. */
 const unitPrice = (basePrice, extras) => basePrice + extrasTotal(extras)
 
+/**
+ * O carrinho salvo guarda o preço do adicional da época em que foi montado.
+ * Ao carregar, os adicionais são reconferidos contra `EXTRAS`: preço novo
+ * entra, adicional que saiu da lista cai — a tela mostra o mesmo valor que
+ * o servidor vai cobrar.
+ */
+function repriceExtras(item) {
+  const extras = (item.extras || [])
+    .map((e) => {
+      const current = EXTRAS.find((x) => x.id === e.id)
+      return current ? { ...e, name: current.label, price: current.price } : null
+    })
+    .filter(Boolean)
+  return { ...item, extras, price: unitPrice(item.basePrice, extras) }
+}
+
 export function CartProvider({ children }) {
   const [items, setItems] = useState([])
   const [isOpen, setOpen] = useState(false)
@@ -29,7 +45,7 @@ export function CartProvider({ children }) {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (raw) {
         const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed)) setItems(parsed.filter((it) => it && it.lineId))
+        if (Array.isArray(parsed)) setItems(parsed.filter((it) => it && it.lineId).map(repriceExtras))
       }
     } catch {
       // localStorage bloqueado (modo privado) — segue com carrinho vazio.

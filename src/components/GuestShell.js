@@ -28,7 +28,7 @@ export default function GuestShell({ children }) {
             <img src="/icons/icon-192.png" alt="" width={38} height={38} />
             <div style={{ minWidth: 0 }}>
               <strong>{SHOP.name}</strong>
-              <span>Entrega em 30–45 min</span>
+              <span>{SHOP.pickupOnly ? 'Retirada no local' : 'Entrega em 30–45 min'}</span>
             </div>
           </div>
 

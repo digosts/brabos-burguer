@@ -82,6 +82,24 @@ export function loadGuestOrders() {
 }
 
 /**
+ * Tira do histórico local os pedidos que a loja não tem mais.
+ *
+ * O servidor é quem manda: se ele respondeu e o `trackingId` não voltou, o
+ * pedido foi apagado do banco (limpeza de pedidos de teste, por exemplo) e
+ * não faz sentido o aparelho continuar mostrando. Entrada sem `trackingId`
+ * é de antes do acompanhamento existir — não há como confirmá-la, então sai
+ * também. Só chame isto com uma resposta *bem-sucedida* do servidor: sem
+ * conexão, a lista precisa ficar como está.
+ */
+export function pruneGuestOrders(foundTrackingIds) {
+  const found = new Set(foundTrackingIds)
+  const current = loadGuestOrders()
+  const next = current.filter((o) => o.trackingId && found.has(o.trackingId))
+  if (next.length !== current.length) write(ORDERS_KEY, next)
+  return next
+}
+
+/**
  * Guarda o pedido recém-enviado junto com o link do WhatsApp já pronto.
  * Guardar o link evita precisar de uma rota nova só para reenviar a
  * mensagem: quem pediu sem login não tem como provar que o pedido é dele.
@@ -98,6 +116,7 @@ export function pushGuestOrder(order, whatsappUrl) {
     deliveryFee: order.deliveryFee,
     total: order.total,
     paymentMethod: order.paymentMethod,
+    fulfillment: order.fulfillment || 'delivery',
     address: order.address,
     notes: order.notes || '',
     createdAt: order.createdAt || new Date().toISOString(),

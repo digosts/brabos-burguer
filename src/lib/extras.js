@@ -9,8 +9,10 @@
  * Só aparece em produto com `allowExtras: true` no banco.
  */
 export const EXTRAS = [
-  { id: 'bacon', label: 'Bacon', price: 3 },
   { id: 'burger', label: 'Hambúrguer', price: 8 },
+  { id: 'bacon', label: 'Bacon', price: 4 },
+  { id: 'mussarela', label: 'Mussarela', price: 2 },
+  { id: 'cheddar', label: 'Cheddar', price: 2 },
 ]
 
 /** Quantas vezes o mesmo adicional pode entrar num lanche. */

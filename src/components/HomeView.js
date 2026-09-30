@@ -104,8 +104,9 @@ export default function HomeView() {
       <div className="hero">
         <h2>{firstName ? `Boa, ${firstName}! 🍔` : 'Bora pedir? 🍔'}</h2>
         <p>
-          Monte seu pedido, escolha como pagar na entrega e acompanhe o preparo
-          por aqui.
+          {SHOP.pickupOnly
+            ? 'Monte seu pedido, pague via PIX e retire aqui na loja. Acompanhe o preparo por aqui.'
+            : 'Monte seu pedido, escolha como pagar na entrega e acompanhe o preparo por aqui.'}
         </p>
         <div className="hero-meta">
           <span className="chip">
@@ -113,12 +114,15 @@ export default function HomeView() {
           </span>
           <span className="chip">
             <IconTruck size={13} />
-            {SHOP.deliveryFee > 0
-              ? `Entrega ${brl(SHOP.deliveryFee)}`
-              : 'Entrega grátis'}
+            {SHOP.pickupOnly
+              ? 'Só retirada no local'
+              : SHOP.deliveryFee > 0
+                ? `Entrega ${brl(SHOP.deliveryFee)}`
+                : 'Entrega grátis'}
           </span>
           <span className="chip">
-            <IconFlame size={13} /> Pagamento na entrega ou via Pix
+            <IconFlame size={13} />
+            {SHOP.pixOnly ? 'Pagamento via PIX' : 'Pagamento na entrega ou via Pix'}
           </span>
         </div>
       </div>

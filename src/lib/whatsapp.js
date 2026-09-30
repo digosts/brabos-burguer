@@ -1,6 +1,7 @@
 import { brl, formatPhone } from './format'
 import { PAYMENT_LABEL } from '@/lib/orderStatus'
 import { describeExtras } from '@/lib/extras'
+import { SHOP } from '@/lib/shop'
 
 const LINE = '--------------------'
 
@@ -31,6 +32,7 @@ const formatCreatedAt = (value) =>
  */
 export function buildWhatsAppMessage(order, shopName = 'Burger House', pixKey = '') {
   const L = []
+  const isPickup = order.fulfillment === 'pickup'
 
   L.push(`*NOVO PEDIDO #${order.code}*`)
   L.push(`_${shopName}_`)
@@ -73,18 +75,23 @@ export function buildWhatsAppMessage(order, shopName = 'Burger House', pixKey = 
     L.push(`Valor: *${money(order.total)}*`)
     L.push('Depois de pagar, envie o comprovante aqui nesta conversa.')
   } else {
-    L.push('_Pagamento realizado na entrega_')
+    L.push(isPickup ? '_Pagamento na retirada_' : '_Pagamento realizado na entrega_')
   }
 
   if (order.changeFor) L.push(`*Troco para:* ${money(order.changeFor)}`)
   L.push('')
 
   L.push(LINE)
-  L.push('*ENDEREÇO DE ENTREGA*')
-  L.push(`Rua: *${asciiSafe(order.address.street)}, ${asciiSafe(order.address.number)}*`)
-  L.push(`Bairro: *${asciiSafe(order.address.neighborhood)}*`)
-  if (order.address.complement) L.push(`Complemento: ${asciiSafe(order.address.complement)}`)
-  if (order.address.reference) L.push(`Referência: ${asciiSafe(order.address.reference)}`)
+  if (isPickup) {
+    L.push('*RETIRADA NO LOCAL*')
+    if (SHOP.pickupAddress) L.push(`Endereço: ${asciiSafe(SHOP.pickupAddress)}`)
+  } else {
+    L.push('*ENDEREÇO DE ENTREGA*')
+    L.push(`Rua: *${asciiSafe(order.address.street)}, ${asciiSafe(order.address.number)}*`)
+    L.push(`Bairro: *${asciiSafe(order.address.neighborhood)}*`)
+    if (order.address.complement) L.push(`Complemento: ${asciiSafe(order.address.complement)}`)
+    if (order.address.reference) L.push(`Referência: ${asciiSafe(order.address.reference)}`)
+  }
 
   if (order.notes) {
     L.push('')

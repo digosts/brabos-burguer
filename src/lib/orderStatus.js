@@ -7,6 +7,15 @@
  * Para mudar o status de um pedido, edite o campo `status` do documento
  * na coleção `orders` usando uma destas chaves.
  */
+import { SHOP } from './shop'
+
+/**
+ * As chaves `on_the_way` e `delivered` continuam as mesmas no modo só
+ * retirada — muda apenas o texto. Assim os pedidos, o painel e a API não
+ * precisam saber qual é o modo da loja.
+ */
+const PICKUP = SHOP.pickupOnly
+
 export const ORDER_STATUS = {
   /**
    * Onde todo pedido novo nasce.
@@ -17,8 +26,8 @@ export const ORDER_STATUS = {
    */
   awaiting_confirmation: { label: 'Aguardando confirmação', tone: 'warn', step: 0 },
   preparing: { label: 'Em preparação', tone: 'warn', step: 1 },
-  on_the_way: { label: 'Saiu para entrega', tone: 'info', step: 2 },
-  delivered: { label: 'Entregue', tone: 'ok', step: 3 },
+  on_the_way: { label: PICKUP ? 'Pronto para retirada' : 'Saiu para entrega', tone: 'info', step: 2 },
+  delivered: { label: PICKUP ? 'Retirado' : 'Entregue', tone: 'ok', step: 3 },
   canceled: { label: 'Cancelado', tone: 'bad', step: 0 },
 }
 
@@ -46,14 +55,23 @@ export const ADMIN_ASSIGNABLE_STATUS = ['preparing', 'on_the_way', 'delivered', 
  */
 export const STATUS_HINT = {
   awaiting_confirmation: 'Assim que a loja confirmar seu pedido no WhatsApp, o preparo começa.',
-  preparing: 'Previsão de entrega: 30 a 45 minutos após a confirmação.',
+  preparing: PICKUP
+    ? 'Avisamos quando estiver pronto para retirar.'
+    : 'Previsão de entrega: 30 a 45 minutos após a confirmação.',
+  ...(PICKUP ? { on_the_way: 'Seu pedido está te esperando — pode vir buscar.' } : null),
 }
+
+/** Etapas da trilha do pedido, na ordem de `step`. */
+export const TRACK_LABELS = PICKUP
+  ? ['Recebido', 'Em preparação', 'Pronto p/ retirar', 'Retirado']
+  : ['Recebido', 'Em preparação', 'Saiu p/ entrega', 'Entregue']
 
 export const PAYMENT_LABEL = {
   // Sem "(na entrega)": quando há chave PIX configurada, a mensagem do
   // WhatsApp manda pagar antes e enviar o comprovante — dizer as duas
   // coisas na mesma tela deixaria o cliente sem saber quando paga.
   pix: 'PIX',
+  // Rótulo antigo mantido: pedidos já gravados com cartão seguem legíveis.
   credit: 'Cartão de crédito (na entrega)',
   debit: 'Cartão de débito (na entrega)',
 }

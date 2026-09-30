@@ -223,11 +223,15 @@ export default function OrdersView() {
               <div className="order-meta">
                 <div>
                   <IconMapPin size={14} />
-                  <span>
-                    {order.address.street}, {order.address.number} — {order.address.neighborhood}
-                    {order.address.complement ? ` (${order.address.complement})` : ''}
-                    {order.address.reference ? ` · Ref: ${order.address.reference}` : ''}
-                  </span>
+                  {order.fulfillment === 'pickup' ? (
+                    <span>Retirada no local</span>
+                  ) : (
+                    <span>
+                      {order.address.street}, {order.address.number} — {order.address.neighborhood}
+                      {order.address.complement ? ` (${order.address.complement})` : ''}
+                      {order.address.reference ? ` · Ref: ${order.address.reference}` : ''}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <IconCard size={14} />
@@ -254,9 +258,11 @@ export default function OrdersView() {
                 <div className="order-total">
                   {brl(order.total)}
                   <small>
-                    {order.deliveryFee > 0
-                      ? `inclui ${brl(order.deliveryFee)} de entrega`
-                      : 'entrega grátis'}
+                    {order.fulfillment === 'pickup'
+                      ? 'retirada no local'
+                      : order.deliveryFee > 0
+                        ? `inclui ${brl(order.deliveryFee)} de entrega`
+                        : 'entrega grátis'}
                   </small>
                 </div>
 

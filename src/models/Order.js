@@ -30,6 +30,10 @@ const orderItemSchema = new mongoose.Schema(
   { _id: false }
 )
 
+function isDelivery() {
+  return this.fulfillment !== 'pickup'
+}
+
 const orderSchema = new mongoose.Schema(
   {
     // Número curto mostrado ao cliente e na produção (#1001, #1002...).
@@ -90,10 +94,14 @@ const orderSchema = new mongoose.Schema(
     // "Troco para quanto?" — só usado quando o pagamento é PIX/dinheiro.
     changeFor: { type: Number, default: null },
 
+    // Retirada no local ou entrega. Pedido antigo, sem o campo, é entrega.
+    fulfillment: { type: String, enum: ['delivery', 'pickup'], default: 'delivery' },
+
+    // Na retirada o endereço fica em branco — só a entrega exige.
     address: {
-      street: { type: String, required: true, trim: true },
-      number: { type: String, required: true, trim: true },
-      neighborhood: { type: String, required: true, trim: true },
+      street: { type: String, required: isDelivery, trim: true, default: '' },
+      number: { type: String, required: isDelivery, trim: true, default: '' },
+      neighborhood: { type: String, required: isDelivery, trim: true, default: '' },
       complement: { type: String, trim: true, default: '' },
       reference: { type: String, trim: true, default: '' },
     },

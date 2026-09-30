@@ -6,7 +6,7 @@ import { PAYMENT_LABEL, STATUS_HINT } from '@/lib/orderStatus'
 import { brl, formatTime } from '@/lib/format'
 import { describeExtras } from '@/lib/extras'
 import { filterOrdersByDay, groupOrdersByDay } from '@/lib/orderDays'
-import { loadGuestOrders } from '@/lib/guest'
+import { loadGuestOrders, pruneGuestOrders } from '@/lib/guest'
 import { useToast } from '@/context/ToastContext'
 import DayFilter from './DayFilter'
 import OrderTrack from './OrderTrack'
@@ -51,7 +51,11 @@ export default function GuestOrdersView() {
    */
   const loadStatus = useCallback(async list => {
     const ids = list.map(o => o.trackingId).filter(Boolean)
-    if (ids.length === 0) return false
+    if (ids.length === 0) {
+      // Só sobraram entradas antigas, sem como consultar: limpa a lista.
+      if (list.length > 0) setOrders(pruneGuestOrders([]))
+      return false
+    }
 
     try {
       const res = await fetch(`/api/orders/track?ids=${ids.join(',')}`, {
@@ -60,9 +64,13 @@ export default function GuestOrdersView() {
       if (!res.ok) return false
 
       const data = await res.json()
-      setStatus(
-        Object.fromEntries((data.orders || []).map(o => [o.trackingId, o]))
-      )
+      const found = data.orders || []
+      setStatus(Object.fromEntries(found.map(o => [o.trackingId, o])))
+
+      // Pedido que o servidor não devolveu foi apagado do banco.
+      if (found.length < list.length) {
+        setOrders(pruneGuestOrders(found.map(o => o.trackingId)))
+      }
       return true
     } catch {
       // Sem conexão: a lista local continua na tela, só sem o andamento.
@@ -246,16 +254,20 @@ export default function GuestOrdersView() {
                 <div className="order-meta">
                   <div>
                     <IconMapPin size={14} />
-                    <span>
-                      {order.address.street}, {order.address.number} —{' '}
-                      {order.address.neighborhood}
-                      {order.address.complement
-                        ? ` (${order.address.complement})`
-                        : ''}
-                      {order.address.reference
-                        ? ` · Ref: ${order.address.reference}`
-                        : ''}
-                    </span>
+                    {order.fulfillment === 'pickup' ? (
+                      <span>Retirada no local</span>
+                    ) : (
+                      <span>
+                        {order.address.street}, {order.address.number} —{' '}
+                        {order.address.neighborhood}
+                        {order.address.complement
+                          ? ` (${order.address.complement})`
+                          : ''}
+                        {order.address.reference
+                          ? ` · Ref: ${order.address.reference}`
+                          : ''}
+                      </span>
+                    )}
                   </div>
                   <div>
                     <IconCard size={14} />
@@ -282,9 +294,11 @@ export default function GuestOrdersView() {
                   <div className="order-total">
                     {brl(order.total)}
                     <small>
-                      {order.deliveryFee > 0
-                        ? `inclui ${brl(order.deliveryFee)} de entrega`
-                        : 'entrega grátis'}
+                      {order.fulfillment === 'pickup'
+                        ? 'retirada no local'
+                        : order.deliveryFee > 0
+                          ? `inclui ${brl(order.deliveryFee)} de entrega`
+                          : 'entrega grátis'}
                     </small>
                   </div>
 

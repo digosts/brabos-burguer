@@ -97,20 +97,29 @@ export async function POST(request) {
         { status: 400 }
       )
     }
-    if (!['pix', 'credit', 'debit'].includes(paymentMethod)) {
+    // Só PIX: o que vier do navegador é ignorado, o pedido sai como PIX.
+    const payment = SHOP.pixOnly ? 'pix' : paymentMethod
+    if (!['pix', 'credit', 'debit'].includes(payment)) {
       return NextResponse.json({ error: 'Escolha a forma de pagamento.' }, { status: 400 })
     }
 
-    // Endereço: os três campos que você exigiu são obrigatórios aqui também,
+    // Só retirada: o modo vem da configuração da loja, não do corpo — um
+    // cliente não consegue pedir entrega enquanto a loja não faz entrega.
+    const pickup = SHOP.pickupOnly
+    const text = (v) => String(v ?? '').trim().slice(0, 200)
+
+    // Endereço: na entrega, os três campos são obrigatórios aqui também,
     // não só no formulário — a API não confia no cliente.
-    const street = address?.street?.trim()
-    const number = address?.number?.trim()
-    const neighborhood = address?.neighborhood?.trim()
+    const street = pickup ? '' : text(address?.street)
+    const number = pickup ? '' : text(address?.number)
+    const neighborhood = pickup ? '' : text(address?.neighborhood)
 
     const missing = []
-    if (!street) missing.push('rua')
-    if (!number) missing.push('número')
-    if (!neighborhood) missing.push('bairro')
+    if (!pickup) {
+      if (!street) missing.push('rua')
+      if (!number) missing.push('número')
+      if (!neighborhood) missing.push('bairro')
+    }
     if (missing.length) {
       return NextResponse.json(
         { error: `Informe ${missing.join(', ')} para a entrega.`, fields: missing },
@@ -240,7 +249,8 @@ export async function POST(request) {
       )
     }
 
-    const deliveryFee = round2(SHOP.deliveryFee)
+    // Retirada não paga taxa de entrega.
+    const deliveryFee = pickup ? 0 : round2(SHOP.deliveryFee)
     const total = round2(subtotal + deliveryFee)
 
     const parsedChange = Number(changeFor)
@@ -253,17 +263,22 @@ export async function POST(request) {
       subtotal,
       deliveryFee,
       total,
-      paymentMethod,
+      paymentMethod: payment,
+      fulfillment: pickup ? 'pickup' : 'delivery',
+      // Troco é para quem paga em dinheiro na entrega; no só-PIX não existe.
       changeFor:
-        paymentMethod === 'pix' && Number.isFinite(parsedChange) && parsedChange > total
+        !SHOP.pixOnly &&
+        payment === 'pix' &&
+        Number.isFinite(parsedChange) &&
+        parsedChange > total
           ? round2(parsedChange)
           : null,
       address: {
         street,
         number,
         neighborhood,
-        complement: address?.complement?.trim() || '',
-        reference: address?.reference?.trim() || '',
+        complement: pickup ? '' : text(address?.complement),
+        reference: pickup ? '' : text(address?.reference),
       },
       notes: String(notes || '').trim().slice(0, 500),
       /**
@@ -284,7 +299,8 @@ export async function POST(request) {
     // Guarda o endereço no perfil para já vir preenchido no próximo pedido.
     // Quem pediu sem login não tem perfil: o endereço dele fica no
     // localStorage do próprio aparelho, gravado pelo carrinho.
-    if (user && saveAddress) {
+    // Na retirada não há endereço novo — o salvo no perfil fica como está.
+    if (user && saveAddress && !pickup) {
       user.address = order.address
       await user.save()
     }

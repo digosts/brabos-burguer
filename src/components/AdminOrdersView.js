@@ -23,6 +23,9 @@ import {
   IconX,
 } from './Icons'
 
+/** Pedido de retirada: os botões falam em "pronto" e "retirado". */
+const isPickup = (order) => order.fulfillment === 'pickup'
+
 const TABS = [
   { href: '/admin/pedidos', label: 'Em andamento' },
   { href: '/admin/entregues', label: 'Finalizados' },
@@ -273,11 +276,17 @@ export default function AdminOrdersView({ scope }) {
               <div className="order-meta">
                 <div>
                   <IconMapPin size={14} />
-                  <span>
-                    {order.address.street}, {order.address.number} - {order.address.neighborhood}
-                    {order.address.complement ? ` (${order.address.complement})` : ''}
-                    {order.address.reference ? ` · Ref: ${order.address.reference}` : ''}
-                  </span>
+                  {order.fulfillment === 'pickup' ? (
+                    <span>
+                      <strong>Retirada no local</strong>
+                    </span>
+                  ) : (
+                    <span>
+                      {order.address.street}, {order.address.number} - {order.address.neighborhood}
+                      {order.address.complement ? ` (${order.address.complement})` : ''}
+                      {order.address.reference ? ` · Ref: ${order.address.reference}` : ''}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <IconCard size={14} />
@@ -298,9 +307,11 @@ export default function AdminOrdersView({ scope }) {
                 <div className="order-total">
                   {brl(order.total)}
                   <small>
-                    {order.deliveryFee > 0
-                      ? `inclui ${brl(order.deliveryFee)} de entrega`
-                      : 'entrega grátis'}
+                    {order.fulfillment === 'pickup'
+                      ? 'retirada'
+                      : order.deliveryFee > 0
+                        ? `inclui ${brl(order.deliveryFee)} de entrega`
+                        : 'entrega grátis'}
                   </small>
                 </div>
 
@@ -349,7 +360,9 @@ export default function AdminOrdersView({ scope }) {
                             changeStatus(
                               order.id,
                               'on_the_way',
-                              `Pedido #${order.code} saiu para entrega`
+                              isPickup(order)
+                                ? `Pedido #${order.code} pronto para retirada`
+                                : `Pedido #${order.code} saiu para entrega`
                             )
                           }
                           disabled={saving === order.id}
@@ -360,8 +373,12 @@ export default function AdminOrdersView({ scope }) {
                             <IconTruck size={15} />
                           )}
                           {order.status === 'delivered' || order.status === 'canceled'
-                            ? 'Voltar para rota'
-                            : 'Saiu para entrega'}
+                            ? isPickup(order)
+                              ? 'Voltar para pronto'
+                              : 'Voltar para rota'
+                            : isPickup(order)
+                              ? 'Pronto p/ retirada'
+                              : 'Saiu para entrega'}
                         </button>
                       ) : null}
 
@@ -372,7 +389,9 @@ export default function AdminOrdersView({ scope }) {
                             changeStatus(
                               order.id,
                               'delivered',
-                              `Pedido #${order.code} marcado como entregue`
+                              isPickup(order)
+                                ? `Pedido #${order.code} marcado como retirado`
+                                : `Pedido #${order.code} marcado como entregue`
                             )
                           }
                           disabled={saving === order.id}
@@ -382,7 +401,7 @@ export default function AdminOrdersView({ scope }) {
                           ) : (
                             <IconCheck size={15} />
                           )}
-                          Entregue
+                          {isPickup(order) ? 'Retirado' : 'Entregue'}
                         </button>
                       ) : null}
                     </>

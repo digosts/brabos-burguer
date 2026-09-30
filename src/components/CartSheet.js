@@ -26,6 +26,10 @@ import {
   IconWhatsApp
 } from './Icons'
 
+/** Modo atual da loja — ver `pickupOnly` e `pixOnly` em `lib/shop.js`. */
+const PICKUP = SHOP.pickupOnly
+const PIX_ONLY = SHOP.pixOnly
+
 const EMPTY_ADDRESS = {
   street: '',
   number: '',
@@ -97,7 +101,8 @@ export default function CartSheet() {
     setErrors(prev => ({ ...prev, [key]: undefined }))
   }
 
-  const deliveryFee = SHOP.deliveryFee
+  // Retirada não tem taxa de entrega.
+  const deliveryFee = PICKUP ? 0 : SHOP.deliveryFee
   const total = subtotal + deliveryFee
 
   const belowMinimum = SHOP.minOrder > 0 && subtotal < SHOP.minOrder
@@ -115,17 +120,19 @@ export default function CartSheet() {
       if (contact.phone.replace(/\D/g, '').length < 10)
         next.phone = 'Informe DDD + número'
     }
-    if (!address.street.trim()) next.street = 'Informe o nome da rua'
-    if (!address.number.trim()) next.number = 'Informe o número'
-    if (!address.neighborhood.trim()) next.neighborhood = 'Informe o bairro'
-    if (!payment) next.payment = 'Escolha como vai pagar na entrega'
+    if (!PICKUP) {
+      if (!address.street.trim()) next.street = 'Informe o nome da rua'
+      if (!address.number.trim()) next.number = 'Informe o número'
+      if (!address.neighborhood.trim()) next.neighborhood = 'Informe o bairro'
+    }
+    if (!PIX_ONLY && !payment) next.payment = 'Escolha como vai pagar na entrega'
     setErrors(next)
     return Object.keys(next).length === 0
   }
 
   const submit = async () => {
     if (!validate()) {
-      toast('Faltam dados para a entrega', 'error')
+      toast(PICKUP ? 'Faltam seus dados' : 'Faltam dados para a entrega', 'error')
       return
     }
 
@@ -142,12 +149,13 @@ export default function CartSheet() {
             // Só id e quantidade: o preço do adicional é o do servidor.
             extras: (i.extras || []).map(e => ({ id: e.id, qty: e.qty }))
           })),
-          paymentMethod: payment,
+          paymentMethod: PIX_ONLY ? 'pix' : payment,
           changeFor:
-            payment === 'pix' && changeFor
+            !PIX_ONLY && payment === 'pix' && changeFor
               ? Number(changeFor.replace(',', '.'))
               : null,
-          address,
+          // Na retirada o servidor descarta o endereço de qualquer jeito.
+          ...(PICKUP ? null : { address }),
           notes: orderNotes,
           // Só o pedido sem login carrega o contato: com sessão, o servidor
           // usa o do perfil e ignora qualquer nome que venha daqui.
@@ -190,10 +198,12 @@ export default function CartSheet() {
         saveGuest({
           name: contact.name,
           phone: contact.phone,
-          address: data.order.address
+          // Na retirada o pedido vem sem endereço: guarda o que já havia,
+          // para não apagá-lo de quem volta a pedir entrega depois.
+          address: PICKUP ? address : data.order.address
         })
         pushGuestOrder(data.order, data.whatsappUrl)
-      } else {
+      } else if (!PICKUP) {
         setUser(prev =>
           prev ? { ...prev, address: data.order.address } : prev
         )
@@ -266,10 +276,12 @@ export default function CartSheet() {
             </span>
             <span>{brl(subtotal)}</span>
           </div>
-          <div className={`totals-line${deliveryFee === 0 ? ' free' : ''}`}>
-            <span>Taxa de entrega</span>
-            <span>{deliveryFee === 0 ? 'Grátis' : brl(deliveryFee)}</span>
-          </div>
+          {PICKUP ? null : (
+            <div className={`totals-line${deliveryFee === 0 ? ' free' : ''}`}>
+              <span>Taxa de entrega</span>
+              <span>{deliveryFee === 0 ? 'Grátis' : brl(deliveryFee)}</span>
+            </div>
+          )}
           <div className="totals-line grand">
             <span>Total</span>
             <span>{brl(total)}</span>
@@ -304,7 +316,9 @@ export default function CartSheet() {
           className="center text-mute"
           style={{ fontSize: 11.5, marginTop: 9 }}
         >
-          Você paga na entrega. Nenhum dado de cartão é pedido aqui.
+          {PIX_ONLY
+            ? 'Pagamento via PIX — a chave chega junto com o resumo no WhatsApp.'
+            : 'Você paga na entrega. Nenhum dado de cartão é pedido aqui.'}
         </p>
       </>
     )
@@ -398,7 +412,10 @@ export default function CartSheet() {
 
           <div className="block">
             <div className="block-head">
-              <IconMapPin size={17} /> Entrega em
+              <IconMapPin size={17} />
+              {result.order.fulfillment === 'pickup'
+                ? 'Retirada no local'
+                : 'Entrega em'}
             </div>
             <p
               style={{
@@ -407,15 +424,29 @@ export default function CartSheet() {
                 lineHeight: 1.6
               }}
             >
-              {result.order.address.street}, {result.order.address.number}
-              <br />
-              Bairro {result.order.address.neighborhood}
-              {result.order.address.complement ? (
+              {result.order.fulfillment === 'pickup' ? (
                 <>
-                  <br />
-                  {result.order.address.complement}
+                  Avisamos pelo WhatsApp quando estiver pronto para retirar.
+                  {SHOP.pickupAddress ? (
+                    <>
+                      <br />
+                      {SHOP.pickupAddress}
+                    </>
+                  ) : null}
                 </>
-              ) : null}
+              ) : (
+                <>
+                  {result.order.address.street}, {result.order.address.number}
+                  <br />
+                  Bairro {result.order.address.neighborhood}
+                  {result.order.address.complement ? (
+                    <>
+                      <br />
+                      {result.order.address.complement}
+                    </>
+                  ) : null}
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -605,15 +636,44 @@ export default function CartSheet() {
                   <span className="field-error">{errors.phone}</span>
                 ) : (
                   <span className="field-hint">
-                    A loja usa esse número para confirmar a entrega. Fica salvo
-                    neste aparelho para o próximo pedido.
+                    {PICKUP
+                      ? 'A loja avisa por esse número quando o pedido estiver pronto.'
+                      : 'A loja usa esse número para confirmar a entrega.'}{' '}
+                    Fica salvo neste aparelho para o próximo pedido.
                   </span>
                 )}
               </label>
             </div>
           ) : null}
 
+          {/* ── retirada (no lugar do endereço) ──────────── */}
+          {PICKUP ? (
+            <div className="block">
+              <div className="block-head">
+                <IconMapPin size={17} />
+                Retirada no local
+              </div>
+              <p
+                style={{
+                  fontSize: 13.5,
+                  color: 'var(--text-dim)',
+                  lineHeight: 1.6
+                }}
+              >
+                No momento trabalhamos só com retirada. Avisamos pelo WhatsApp
+                quando seu pedido estiver pronto.
+                {SHOP.pickupAddress ? (
+                  <>
+                    <br />
+                    <strong>{SHOP.pickupAddress}</strong>
+                  </>
+                ) : null}
+              </p>
+            </div>
+          ) : null}
+
           {/* ── endereço ─────────────────────────────────── */}
+          {PICKUP ? null : (
           <div className="block">
             <div className="block-head">
               <IconMapPin size={17} />
@@ -717,8 +777,10 @@ export default function CartSheet() {
               </label>
             </div>
           </div>
+          )}
 
-          {/* ── pagamento ────────────────────────────────── */}
+          {/* ── pagamento (escondido no modo só PIX) ─────── */}
+          {PIX_ONLY ? null : (
           <div className="block">
             <div className="block-head">
               <IconCard size={17} />
@@ -782,6 +844,7 @@ export default function CartSheet() {
               </span>
             </div>
           </div>
+          )}
 
           {/* ── observações ──────────────────────────────── */}
           <div className="block">
@@ -793,7 +856,11 @@ export default function CartSheet() {
               value={orderNotes}
               maxLength={500}
               onChange={e => setOrderNotes(e.target.value)}
-              placeholder="Alguma instrução para a cozinha ou para o entregador?"
+              placeholder={
+                PICKUP
+                  ? 'Alguma instrução para a cozinha?'
+                  : 'Alguma instrução para a cozinha ou para o entregador?'
+              }
             />
           </div>
         </div>

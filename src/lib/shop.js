@@ -12,7 +12,22 @@ export const SHOP = {
   minOrder: num(process.env.NEXT_PUBLIC_MIN_ORDER, 0),
   // Chave PIX enviada na mensagem do WhatsApp quando o cliente escolhe PIX.
   // Vazia: a mensagem sai sem o bloco de pagamento, sem quebrar nada.
-  pixKey: (process.env.NEXT_PUBLIC_PIX_KEY || '').trim()
+  pixKey: (process.env.NEXT_PUBLIC_PIX_KEY || '').trim(),
+
+  /**
+   * Modo de atendimento atual. Troque para `false` quando voltar a ter
+   * entrega / outras formas de pagamento — o resto do app se ajusta sozinho.
+   *
+   * pickupOnly: só retirada no local. Some o endereço do carrinho, não há
+   *   taxa de entrega e os status falam em "pronto para retirada".
+   * pixOnly: só PIX. Some a escolha de pagamento e o pedido já vai como PIX
+   *   (a chave segue na mensagem do WhatsApp).
+   */
+  pickupOnly: true,
+  pixOnly: true,
+
+  // Onde retirar (opcional). Aparece no carrinho e na mensagem do WhatsApp.
+  pickupAddress: (process.env.NEXT_PUBLIC_PICKUP_ADDRESS || '').trim()
 }
 
 export const PAYMENT_METHODS = [

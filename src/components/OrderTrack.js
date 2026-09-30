@@ -1,11 +1,10 @@
-import { IconBag, IconCheck, IconFlame, IconTruck } from './Icons'
+import { IconBag, IconCheck, IconFlame, IconMapPin, IconTruck } from './Icons'
+import { TRACK_LABELS } from '@/lib/orderStatus'
+import { SHOP } from '@/lib/shop'
 
-const STEPS = [
-  { label: 'Recebido', Icon: IconBag },
-  { label: 'Em preparação', Icon: IconFlame },
-  { label: 'Saiu p/ entrega', Icon: IconTruck },
-  { label: 'Entregue', Icon: IconCheck },
-]
+const ICONS = [IconBag, IconFlame, SHOP.pickupOnly ? IconMapPin : IconTruck, IconCheck]
+
+const STEPS = TRACK_LABELS.map((label, i) => ({ label, Icon: ICONS[i] }))
 
 /** Trilha de etapas do pedido — a mesma para quem tem conta e para quem não tem. */
 export default function OrderTrack({ step }) {
