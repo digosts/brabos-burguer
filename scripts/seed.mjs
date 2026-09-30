@@ -64,6 +64,15 @@ const MENU = [
         allowExtras: true,
       },
       {
+        name: 'Brabos Bacon',
+        description:
+          'Pão brioche, maionese defumada, hambúrguer artesanal de 160g, mussarela, cheddar e bacon.',
+        price: 28,
+        // Montada a partir da foto do Brabo Burguer, com o bacon do Salada Bacon.
+        image: '/produtos/brabos-bacon.jpg',
+        allowExtras: true,
+      },
+      {
         name: 'Brabo Salada Bacon',
         description:
           'Pão brioche, maionese defumada, cebola roxa, tomate, alface, hambúrguer artesanal de 160g, mussarela, cheddar e bacon.',
