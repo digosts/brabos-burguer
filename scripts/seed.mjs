@@ -1,6 +1,6 @@
 /**
- * Popula o banco com um menu de exemplo — útil para ver o app funcionando
- * antes de cadastrar os produtos reais.
+ * Popula o banco com o cardápio da loja (os lanches do banner "Opções de
+ * lanches"). As fotos ficam em `public/produtos/`.
  *
  *   npm run seed            insere o que ainda não existe
  *   npm run seed -- --reset apaga categorias/produtos e insere de novo
@@ -44,96 +44,32 @@ const MENU = [
   {
     name: 'Lanches',
     icon: '🍔',
-    description: 'Blend artesanal de 180g, feito na chapa',
+    description: 'Hambúrguer artesanal de 160g no pão brioche',
     order: 1,
     products: [
       {
-        name: 'X-Salada da Casa',
-        description: 'Pão brioche, blend 180g, queijo prato, alface americana, tomate e cebola',
-        price: 28.9,
-        image:
-          'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=70',
+        name: 'Brabo Burguer',
+        description:
+          'Pão brioche, maionese defumada, hambúrguer artesanal de 160g, mussarela e cheddar.',
+        price: 24,
+        image: '/produtos/brabo-burguer.jpg',
+        allowExtras: true,
       },
       {
-        name: 'X-Bacon Duplo',
-        description: 'Dois blends de 180g, cheddar inglês, bacon crocante e maionese da casa',
-        price: 36.9,
-        tag: 'Mais pedido',
-        image:
-          'https://images.unsplash.com/photo-1553979459-d2229ba7433b?auto=format&fit=crop&w=600&q=70',
+        name: 'Brabo Salada',
+        description:
+          'Pão brioche, maionese defumada, cebola roxa, tomate, alface, hambúrguer artesanal de 160g, mussarela e cheddar.',
+        price: 26,
+        image: '/produtos/brabo-salada.jpg',
+        allowExtras: true,
       },
       {
-        name: 'Duplo Cheddar',
-        description: 'Dois blends de 180g, cheddar duplo, cebola caramelizada e molho especial',
-        price: 41.9,
-        oldPrice: 46.9,
-        image:
-          'https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=600&q=70',
-      },
-    ],
-  },
-  {
-    name: 'Acompanhamentos',
-    icon: '🍟',
-    description: 'Para dividir (ou não)',
-    order: 2,
-    products: [
-      {
-        name: 'Batata Frita Média',
-        description: 'Porção individual de batata rústica com páprica e sal marinho',
-        price: 14.9,
-        image:
-          'https://images.unsplash.com/photo-1518013431117-eb1465fa5752?auto=format&fit=crop&w=600&q=70',
-      },
-      {
-        name: 'Batata Frita Grande',
-        description: 'Batata rústica com páprica e sal marinho, serve duas pessoas',
-        price: 18.9,
-        image:
-          'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&q=70',
-      },
-      {
-        name: 'Onion Rings',
-        description: 'Oito anéis de cebola empanados, com molho barbecue',
-        price: 21.9,
-        image:
-          'https://images.unsplash.com/photo-1639024471283-03518883512d?auto=format&fit=crop&w=600&q=70',
-      },
-    ],
-  },
-  {
-    name: 'Bebidas',
-    icon: '🥤',
-    description: 'Tudo servido bem gelado',
-    order: 3,
-    products: [
-      {
-        name: 'Coca-Cola Lata 350ml',
-        description: 'Lata gelada, servida com copo e gelo se você quiser',
-        price: 7.5,
-        image:
-          'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=600&q=70',
-      },
-      {
-        name: 'Fanta Laranja Lata 350ml',
-        description: 'Refrigerante de laranja bem gelado',
-        price: 7.5,
-        image:
-          'https://images.unsplash.com/photo-1624517452488-04869289c4ca?auto=format&fit=crop&w=600&q=70',
-      },
-      {
-        name: 'Schweppes Tônica Lata 350ml',
-        description: 'Água tônica gelada, com gás',
-        price: 8.5,
-        image:
-          'https://images.unsplash.com/photo-1581006852262-e4307cf6283a?auto=format&fit=crop&w=600&q=70',
-      },
-      {
-        name: 'Suco Natural de Laranja 500ml',
-        description: 'Espremido na hora, sem açúcar',
-        price: 12.9,
-        image:
-          'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=600&q=70',
+        name: 'Brabo Salada Bacon',
+        description:
+          'Pão brioche, maionese defumada, cebola roxa, tomate, alface, hambúrguer artesanal de 160g, mussarela, cheddar e bacon.',
+        price: 30,
+        image: '/produtos/brabo-salada-bacon.jpg',
+        allowExtras: true,
       },
     ],
   },

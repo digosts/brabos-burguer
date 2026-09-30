@@ -12,6 +12,7 @@ export function serializeOrder(order) {
     items: order.items.map((i) => ({
       name: i.name,
       price: i.price,
+      extras: (i.extras || []).map((e) => ({ id: e.id, name: e.name, price: e.price, qty: e.qty })),
       qty: i.qty,
       notes: i.notes || '',
     })),

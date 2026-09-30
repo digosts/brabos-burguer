@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { PAYMENT_LABEL, STATUS_HINT } from '@/lib/orderStatus'
 import { brl, formatTime } from '@/lib/format'
+import { describeExtras } from '@/lib/extras'
 import { filterOrdersByDay, groupOrdersByDay } from '@/lib/orderDays'
 import { openWhatsApp } from '@/lib/openWhatsApp'
 import { useToast } from '@/context/ToastContext'
@@ -205,6 +206,9 @@ export default function OrdersView() {
                     <span className="qty">{item.qty}x</span>
                     <span className="name">
                       {item.name}
+                      {item.extras?.length ? (
+                        <small className="item-extras">+ {describeExtras(item.extras)}</small>
+                      ) : null}
                       {item.notes ? (
                         <em style={{ display: 'block', fontSize: 12, color: 'var(--warn)' }}>
                           ↳ {item.notes}

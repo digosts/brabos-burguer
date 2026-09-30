@@ -1,5 +1,6 @@
 import { brl, formatPhone } from './format'
 import { PAYMENT_LABEL } from '@/lib/orderStatus'
+import { describeExtras } from '@/lib/extras'
 
 const LINE = '--------------------'
 
@@ -43,6 +44,8 @@ export function buildWhatsAppMessage(order, shopName = 'Burger House', pixKey = 
   L.push('*ITENS DO PEDIDO*')
   for (const item of order.items) {
     L.push(`*${item.qty}x* ${asciiSafe(item.name)} - ${money(item.price * item.qty)}`)
+    // Por unidade: "2x Brabo Burguer" com "+ 1x Bacon" leva bacon nos dois.
+    if (item.extras?.length) L.push(`    + Adicional: ${asciiSafe(describeExtras(item.extras))}`)
     if (item.notes) L.push(`    > _${asciiSafe(item.notes)}_`)
   }
   L.push('')

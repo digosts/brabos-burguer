@@ -25,6 +25,7 @@ export async function GET() {
         oldPrice: p.oldPrice && p.oldPrice > p.price ? p.oldPrice : null,
         image: p.image || '',
         tag: p.tag || '',
+        allowExtras: Boolean(p.allowExtras),
       })
     }
 

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { PAYMENT_LABEL } from '@/lib/orderStatus'
 import { brl, formatPhone, formatTime } from '@/lib/format'
+import { describeExtras } from '@/lib/extras'
 import { filterOrdersByDay, groupOrdersByDay } from '@/lib/orderDays'
 import { useToast } from '@/context/ToastContext'
 import DayFilter from './DayFilter'
@@ -255,6 +256,9 @@ export default function AdminOrdersView({ scope }) {
                     <span className="qty">{item.qty}x</span>
                     <span className="name">
                       {item.name}
+                      {item.extras?.length ? (
+                        <small className="item-extras">+ {describeExtras(item.extras)}</small>
+                      ) : null}
                       {item.notes ? (
                         <em style={{ display: 'block', fontSize: 12, color: 'var(--warn)' }}>
                           {item.notes}

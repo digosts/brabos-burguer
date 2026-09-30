@@ -5,7 +5,7 @@ import { brl } from '@/lib/format'
 import { IconMinus, IconPlus } from './Icons'
 
 export default function ProductCard({ product }) {
-  const { add, setQty, qtyOf } = useCart()
+  const { add, decrement, qtyOf } = useCart()
   const qty = qtyOf(product.id)
 
   return (
@@ -42,7 +42,7 @@ export default function ProductCard({ product }) {
           ) : (
             <div className="stepper">
               <button
-                onClick={() => setQty(product.id, qty - 1)}
+                onClick={() => decrement(product.id)}
                 aria-label={`Remover uma unidade de ${product.name}`}
               >
                 <IconMinus size={16} />

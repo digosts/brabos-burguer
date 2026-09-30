@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { PAYMENT_METHODS, SHOP } from '@/lib/shop'
 import { brl, maskPhone } from '@/lib/format'
+import { EXTRAS, MAX_EXTRA_QTY, describeExtras } from '@/lib/extras'
 import { loadGuest, pushGuestOrder, saveGuest } from '@/lib/guest'
 import { openWhatsApp } from '@/lib/openWhatsApp'
 import {
@@ -41,6 +42,7 @@ export default function CartSheet() {
     isOpen,
     setOpen,
     setQty,
+    setExtraQty,
     setNotes,
     remove,
     clear
@@ -136,7 +138,9 @@ export default function CartSheet() {
           items: items.map(i => ({
             productId: i.productId,
             qty: i.qty,
-            notes: i.notes
+            notes: i.notes,
+            // Só id e quantidade: o preço do adicional é o do servidor.
+            extras: (i.extras || []).map(e => ({ id: e.id, qty: e.qty }))
           })),
           paymentMethod: payment,
           changeFor:
@@ -362,7 +366,14 @@ export default function CartSheet() {
             {result.order.items.map((it, i) => (
               <div className="order-item" key={i}>
                 <span className="qty">{it.qty}x</span>
-                <span className="name">{it.name}</span>
+                <span className="name">
+                  {it.name}
+                  {it.extras?.length ? (
+                    <small className="item-extras">
+                      + {describeExtras(it.extras)}
+                    </small>
+                  ) : null}
+                </span>
                 <span className="val">{brl(it.price * it.qty)}</span>
               </div>
             ))}
@@ -424,7 +435,7 @@ export default function CartSheet() {
         /* ── carrinho + checkout ─────────────────────────── */
         <div>
           {items.map(item => (
-            <div className="cart-line" key={item.productId}>
+            <div className="cart-line" key={item.lineId}>
               <div className="cart-line-thumb">
                 {item.image ? (
                   <img src={item.image} alt="" loading="lazy" />
@@ -439,11 +450,63 @@ export default function CartSheet() {
                 <div className="cart-line-name">{item.name}</div>
                 <div className="cart-line-unit">{brl(item.price)} cada</div>
 
-                {item.notes && openNoteFor !== item.productId ? (
+                {item.allowExtras ? (
+                  <div className="extras">
+                    <span className="extras-title">
+                      Adicionais
+                      {item.qty > 1 ? ` · valem para os ${item.qty}` : ''}
+                    </span>
+                    {EXTRAS.map(extra => {
+                      const n =
+                        item.extras?.find(e => e.id === extra.id)?.qty || 0
+                      return n === 0 ? (
+                        <button
+                          key={extra.id}
+                          className="extra-chip"
+                          onClick={() => setExtraQty(item.lineId, extra.id, 1)}
+                        >
+                          <IconPlus size={12} />
+                          {extra.label}
+                          <span className="extra-price">
+                            +{brl(extra.price)}
+                          </span>
+                        </button>
+                      ) : (
+                        <div key={extra.id} className="extra-chip active">
+                          <button
+                            onClick={() =>
+                              setExtraQty(item.lineId, extra.id, n - 1)
+                            }
+                            aria-label={`Tirar um ${extra.label} adicional`}
+                          >
+                            <IconMinus size={12} />
+                          </button>
+                          <span>
+                            {n}x {extra.label}
+                            <span className="extra-price">
+                              +{brl(extra.price * n)}
+                            </span>
+                          </span>
+                          <button
+                            onClick={() =>
+                              setExtraQty(item.lineId, extra.id, n + 1)
+                            }
+                            disabled={n >= MAX_EXTRA_QTY}
+                            aria-label={`Mais um ${extra.label} adicional`}
+                          >
+                            <IconPlus size={12} />
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : null}
+
+                {item.notes && openNoteFor !== item.lineId ? (
                   <div className="cart-line-notes">📝 {item.notes}</div>
                 ) : null}
 
-                {openNoteFor === item.productId ? (
+                {openNoteFor === item.lineId ? (
                   <textarea
                     className="textarea"
                     style={{ marginTop: 8, minHeight: 64 }}
@@ -451,13 +514,13 @@ export default function CartSheet() {
                     value={item.notes}
                     maxLength={200}
                     autoFocus
-                    onChange={e => setNotes(item.productId, e.target.value)}
+                    onChange={e => setNotes(item.lineId, e.target.value)}
                     onBlur={() => setOpenNoteFor(null)}
                   />
                 ) : (
                   <button
                     className="note-btn"
-                    onClick={() => setOpenNoteFor(item.productId)}
+                    onClick={() => setOpenNoteFor(item.lineId)}
                   >
                     <IconNote size={12} />
                     {item.notes ? 'Editar observação' : 'Adicionar observação'}
@@ -472,14 +535,14 @@ export default function CartSheet() {
                 <div className="stepper">
                   {item.qty === 1 ? (
                     <button
-                      onClick={() => remove(item.productId)}
+                      onClick={() => remove(item.lineId)}
                       aria-label="Remover item"
                     >
                       <IconTrash size={15} />
                     </button>
                   ) : (
                     <button
-                      onClick={() => setQty(item.productId, item.qty - 1)}
+                      onClick={() => setQty(item.lineId, item.qty - 1)}
                       aria-label="Diminuir quantidade"
                     >
                       <IconMinus size={15} />
@@ -487,7 +550,7 @@ export default function CartSheet() {
                   )}
                   <span>{item.qty}</span>
                   <button
-                    onClick={() => setQty(item.productId, item.qty + 1)}
+                    onClick={() => setQty(item.lineId, item.qty + 1)}
                     aria-label="Aumentar quantidade"
                   >
                     <IconPlus size={15} />

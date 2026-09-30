@@ -39,6 +39,10 @@ const productSchema = new mongoose.Schema(
     // Destaca o produto com uma etiqueta na tela inicial (opcional).
     tag: { type: String, trim: true, default: '' },
 
+    // Libera no carrinho os adicionais de `src/lib/extras.js` (bacon,
+    // hambúrguer...) para este produto. Bebida e porção ficam de fora.
+    allowExtras: { type: Boolean, default: false },
+
     order: { type: Number, default: 0 },
     active: { type: Boolean, default: true, index: true },
   },

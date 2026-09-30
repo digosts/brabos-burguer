@@ -9,6 +9,7 @@ import { checkLimits, clientIp, MINUTE } from '@/lib/rateLimit'
 import { logAuditThrottled } from '@/lib/audit'
 import { SHOP } from '@/lib/shop'
 import { serializeOrder } from '@/lib/serialize'
+import { extrasTotal, normalizeExtras } from '@/lib/extras'
 import { buildWhatsAppMessage, buildWhatsAppUrl } from '@/lib/whatsapp'
 
 const round2 = (n) => Math.round(n * 100) / 100
@@ -215,10 +216,16 @@ export async function POST(request) {
         )
       }
       const qty = Math.max(1, Math.min(99, Math.floor(Number(item.qty) || 1)))
+      // Adicional só vale em produto que libera — num refrigerante, o que
+      // vier do navegador é descartado em silêncio. Os preços saem de
+      // `EXTRAS`, nunca do corpo da requisição.
+      const extras = product.allowExtras ? normalizeExtras(item.extras) : []
       orderItems.push({
         product: product._id,
         name: product.name,
-        price: product.price,
+        price: round2(product.price + extrasTotal(extras)),
+        basePrice: product.price,
+        extras,
         qty,
         notes: String(item.notes || '').trim().slice(0, 200),
       })

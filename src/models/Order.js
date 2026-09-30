@@ -2,13 +2,28 @@ import { randomUUID } from 'node:crypto'
 import mongoose from 'mongoose'
 import { ORDER_STATUS } from '@/lib/orderStatus'
 
+const orderExtraSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    name: { type: String, required: true },
+    price: { type: Number, required: true, min: 0 },
+    qty: { type: Number, required: true, min: 1 },
+  },
+  { _id: false }
+)
+
 const orderItemSchema = new mongoose.Schema(
   {
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
     // Nome e preço ficam gravados no pedido: se você mudar o preço do
     // produto depois, o histórico do cliente continua correto.
     name: { type: String, required: true },
+    // Preço de *uma* unidade já com os adicionais somados — é o que faz
+    // `price * qty` continuar certo em todas as telas e na mensagem.
     price: { type: Number, required: true, min: 0 },
+    // Preço do lanche sem adicionais, para conferência.
+    basePrice: { type: Number, min: 0 },
+    extras: { type: [orderExtraSchema], default: [] },
     qty: { type: Number, required: true, min: 1 },
     notes: { type: String, trim: true, default: '' },
   },
