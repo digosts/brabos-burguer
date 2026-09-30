@@ -12,7 +12,9 @@ export const SHOP = {
   minOrder: num(process.env.NEXT_PUBLIC_MIN_ORDER, 0),
   // Chave PIX enviada na mensagem do WhatsApp quando o cliente escolhe PIX.
   // Vazia: a mensagem sai sem o bloco de pagamento, sem quebrar nada.
-  pixKey: (process.env.NEXT_PUBLIC_PIX_KEY || '').trim(),
+  pixKey: (process.env.NEXT_PUBLIC_PIX_KEY || '17991238343').trim(),
+  // Chave PIX como aparece nos textos da tela.
+  pixKeyLabel: '(17)99123-8343',
 
   /**
    * Modo de atendimento atual. Troque para `false` quando voltar a ter
@@ -31,7 +33,7 @@ export const SHOP = {
 }
 
 export const PAYMENT_METHODS = [
-  { value: 'pix', label: 'PIX', hint: 'Chave Pix', icon: 'pix' },
+  { value: 'pix', label: 'PIX', hint: 'Chave (17)99123-8343', icon: 'pix' },
   {
     value: 'credit',
     label: 'Crédito',

@@ -105,7 +105,7 @@ export default function HomeView() {
         <h2>{firstName ? `Boa, ${firstName}! 🍔` : 'Bora pedir? 🍔'}</h2>
         <p>
           {SHOP.pickupOnly
-            ? 'Monte seu pedido, pague via PIX e retire aqui na loja. Acompanhe o preparo por aqui.'
+            ? `Monte seu pedido, pague via PIX (chave ${SHOP.pixKeyLabel}) e retire aqui na loja. Acompanhe o preparo por aqui.`
             : 'Monte seu pedido, escolha como pagar na entrega e acompanhe o preparo por aqui.'}
         </p>
         <div className="hero-meta">
@@ -122,7 +122,9 @@ export default function HomeView() {
           </span>
           <span className="chip">
             <IconFlame size={13} />
-            {SHOP.pixOnly ? 'Pagamento via PIX' : 'Pagamento na entrega ou via Pix'}
+            {SHOP.pixOnly
+              ? `PIX ${SHOP.pixKeyLabel}`
+              : `Pagamento na entrega ou via Pix ${SHOP.pixKeyLabel}`}
           </span>
         </div>
       </div>

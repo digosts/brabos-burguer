@@ -317,7 +317,7 @@ export default function CartSheet() {
           style={{ fontSize: 11.5, marginTop: 9 }}
         >
           {PIX_ONLY
-            ? 'Pagamento via PIX — a chave chega junto com o resumo no WhatsApp.'
+            ? `Pagamento via PIX — chave ${SHOP.pixKeyLabel}. Ela também chega junto com o resumo no WhatsApp.`
             : 'Você paga na entrega. Nenhum dado de cartão é pedido aqui.'}
         </p>
       </>
@@ -839,7 +839,7 @@ export default function CartSheet() {
             >
               <IconClock size={16} />
               <span>
-                O pagamento é feito via PIX ou em Credito/Débito com maquininha
+                O pagamento é feito via PIX (chave {SHOP.pixKeyLabel}) ou em Credito/Débito com maquininha
                 na entrega.
               </span>
             </div>
